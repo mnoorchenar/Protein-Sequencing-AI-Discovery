@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Drug Discovery</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+    <script src="https://unpkg.com/ngl@2.0.0-dev.37/dist/ngl.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>🧬 Protein Sequencing for AI Discovery | by <a href="https://www.linkedin.com/in/mnoorchenar" target="_blank">Mohammad Noorchenarboo</a></h1>
+          <!-- <button id="theme-toggle" class="theme-toggle-btn">🌙 Dark Mode</button> -->
+
+    </div>
+    
+    <div class="main-container">
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h2>💬 Chat</h2>
+                <div class="model-selector">
+                    <label>🤖 Model:</label>
+
+                  
+<select id="model-select">
+<optgroup label="General / Default Models">
+    <option value="mistralai/Mistral-7B-Instruct-v0.3" selected>Mistral 7B Instruct v0.3 (Default)</option>
+    <option value="meta-llama/Llama-3.2-3B-Instruct">Llama 3.2 3B Instruct</option>
+    <option value="microsoft/Phi-3-mini-4k-instruct">Phi 3 Mini 4K Instruct</option>
+    <option value="ServiceNow-AI/Apriel-5B-Instruct">Apriel 5B Instruct</option>
+    <option value="prithivMLmods/Llama-3.1-5B-Instruct">Llama 3.1 5B Instruct</option>
+</optgroup>
+</select>
+
+                  
+                </div>                
+              <div class="model-selector">
+                          <label>🔑 HF Token (Optional):</label>
+                          <input type="text" id="hf-token-input" placeholder="hf_... (uses default if empty)">                      
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                <div class="welcome-message">
+                    <h3>Welcome! 👋</h3>
+                    <p>Ask me about diseases, proteins, or drug targets to discover and visualize protein structures.</p>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <textarea id="chat-input" placeholder="Example: diabetes proteins, Alzheimer disease targets..."></textarea>
+                <button id="send-btn">🔬 Discover Proteins</button>
+            </div>
+        </div>
+        
+        <div class="viewer-panel">
+            <div class="viewer-tabs">
+                <button class="viewer-tab active" data-tab="3dmol">🔷 3Dmol</button>
+                <button class="viewer-tab" data-tab="ngl">💎 NGL</button>
+                <button class="viewer-tab" data-tab="simple">🎨 Simple</button>
+                <button class="viewer-tab" data-tab="info">📊 Info</button>
+                <button class="viewer-tab" data-tab="questions">💬 Ask Questions</button>
+            </div>
+            
+            <div class="viewer-content">
+                <div id="tab-3dmol" class="tab-pane active">
+                    <div class="visualization-container">
+                        <div id="protein-viewer">
+                            <div class="loading">
+                                <h3>Ready to explore!</h3>
+                                <p>Search for proteins to visualize their 3D structures.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="viewer-controls" id="controls-3dmol"></div>
+                </div>
+                
+                <div id="tab-ngl" class="tab-pane">
+                    <div class="visualization-container">
+                        <div id="protein-viewer-ngl"></div>
+                    </div>
+                    <div class="viewer-controls" id="controls-ngl"></div>
+                </div>
+                
+                <div id="tab-simple" class="tab-pane">
+                    <div class="visualization-container">
+                        <div id="protein-viewer-simple"></div>
+                    </div>
+                    <div class="viewer-controls" id="controls-simple"></div>
+                </div>
+                
+                <div id="tab-info" class="tab-pane">
+                    <div class="explanation-container" id="protein-info">
+                        <div class="welcome-message">
+                            <h3>Protein Information</h3>
+                            <p>Click on a protein from the chat to see detailed information here.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tab-questions" class="tab-pane">
+                    <div class="protein-qa-container">
+                        <div class="qa-messages" id="qa-messages">
+                            <div class="welcome-message">
+                                <h3>💬 Ask Questions</h3>
+                                <p>Load a protein structure first, then ask me anything about it!</p>
+                            </div>
+                        </div>
+                        <div class="qa-input-area">
+                            <input type="text" id="qa-input" placeholder="Ask about this protein..." disabled>
+                            <button id="qa-send-btn" disabled>Send Question</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>© 2025 Mohammad Noorchenarboo. All rights reserved.</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

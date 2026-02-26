@@ -1,0 +1,348 @@
+{
+  "alzheimer": [
+    {
+      "name": "Amyloid Precursor Protein (APP)",
+      "uniprot_id": "P05067",
+      "relevance": "Central to amyloid plaque formation in Alzheimer disease",
+      "function": "Involved in neuronal development and synaptic plasticity",
+      "drugs": "Aducanumab, Lecanemab (monoclonal antibodies)"
+    },
+    {
+      "name": "Beta-Secretase 1 (BACE1)",
+      "uniprot_id": "P56817",
+      "relevance": "Key enzyme in amyloid-beta production",
+      "function": "Cleaves APP to produce amyloid-beta peptides",
+      "drugs": "Multiple BACE inhibitors in development"
+    },
+    {
+      "name": "Tau Protein (MAPT)",
+      "uniprot_id": "P10636",
+      "relevance": "Forms neurofibrillary tangles characteristic of Alzheimer",
+      "function": "Microtubule-associated protein involved in neuronal transport",
+      "drugs": "Tau aggregation inhibitors in clinical trials"
+    }
+  ],
+  "parkinson": [
+    {
+      "name": "Alpha-Synuclein",
+      "uniprot_id": "P37840",
+      "relevance": "Forms Lewy bodies in Parkinson disease",
+      "function": "Presynaptic protein involved in dopamine regulation",
+      "drugs": "Multiple aggregation inhibitors in development"
+    },
+    {
+      "name": "LRRK2",
+      "uniprot_id": "Q5S007",
+      "relevance": "Most common genetic cause of Parkinson",
+      "function": "Kinase involved in autophagy and mitochondrial function",
+      "drugs": "LRRK2 inhibitors in clinical trials"
+    },
+    {
+      "name": "GBA (Glucocerebrosidase)",
+      "uniprot_id": "P04062",
+      "relevance": "Mutations increase Parkinson risk",
+      "function": "Lysosomal enzyme breaking down glucocerebroside",
+      "drugs": "Enzyme replacement and chaperone therapies"
+    }
+  ],
+  "diabetes": [
+    {
+      "name": "Insulin Receptor (INSR)",
+      "uniprot_id": "P06213",
+      "relevance": "Central to glucose metabolism and insulin signaling",
+      "function": "Mediates cellular response to insulin",
+      "drugs": "Insulin sensitizers like metformin target this pathway"
+    },
+    {
+      "name": "DPP-4 (Dipeptidyl Peptidase-4)",
+      "uniprot_id": "P27487",
+      "relevance": "Regulates incretin hormones that control blood glucose",
+      "function": "Degrades GLP-1 and other incretins",
+      "drugs": "Sitagliptin, Saxagliptin, Linagliptin"
+    },
+    {
+      "name": "SGLT2 (Sodium-Glucose Cotransporter 2)",
+      "uniprot_id": "P31639",
+      "relevance": "Controls glucose reabsorption in kidneys",
+      "function": "Transports glucose from kidney filtrate back to blood",
+      "drugs": "Empagliflozin, Dapagliflozin, Canagliflozin"
+    }
+  ],
+  "cancer": [
+    {
+      "name": "EGFR (Epidermal Growth Factor Receptor)",
+      "uniprot_id": "P00533",
+      "relevance": "Commonly overexpressed in many cancers",
+      "function": "Controls cell proliferation and survival",
+      "drugs": "Erlotinib, Gefitinib, Cetuximab"
+    },
+    {
+      "name": "HER2 (Human Epidermal Growth Factor Receptor 2)",
+      "uniprot_id": "P04626",
+      "relevance": "Amplified in approximately 20% of breast cancers",
+      "function": "Promotes cell growth and division",
+      "drugs": "Trastuzumab, Pertuzumab, Lapatinib"
+    },
+    {
+      "name": "PD-1 (Programmed Cell Death Protein 1)",
+      "uniprot_id": "Q15116",
+      "relevance": "Immune checkpoint involved in cancer immune evasion",
+      "function": "Inhibits T-cell activation allowing tumors to escape immunity",
+      "drugs": "Pembrolizumab, Nivolumab"
+    }
+  ],
+  "inflammation": [
+    {
+      "name": "TNF-alpha (Tumor Necrosis Factor Alpha)",
+      "uniprot_id": "P01375",
+      "relevance": "Key pro-inflammatory cytokine",
+      "function": "Mediates systemic inflammation and immune responses",
+      "drugs": "Infliximab, Adalimumab, Etanercept"
+    },
+    {
+      "name": "IL-6 (Interleukin-6)",
+      "uniprot_id": "P05231",
+      "relevance": "Central inflammatory mediator",
+      "function": "Pro-inflammatory cytokine in acute phase response",
+      "drugs": "Tocilizumab, Sarilumab"
+    },
+    {
+      "name": "COX-2 (Cyclooxygenase-2)",
+      "uniprot_id": "P35354",
+      "relevance": "Produces inflammatory prostaglandins",
+      "function": "Enzyme converting arachidonic acid to prostaglandins",
+      "drugs": "Celecoxib, Rofecoxib"
+    }
+  ],
+  "heart": [
+    {
+      "name": "ACE (Angiotensin-Converting Enzyme)",
+      "uniprot_id": "P12821",
+      "relevance": "Regulates blood pressure and cardiovascular function",
+      "function": "Converts angiotensin I to angiotensin II",
+      "drugs": "Lisinopril, Enalapril, Ramipril"
+    },
+    {
+      "name": "Beta-1 Adrenergic Receptor",
+      "uniprot_id": "P08588",
+      "relevance": "Controls heart rate and contractility",
+      "function": "Mediates effects of epinephrine and norepinephrine on heart",
+      "drugs": "Metoprolol, Atenolol, Bisoprolol"
+    }
+  ],
+  "hypertension": [
+    {
+      "name": "ACE (Angiotensin-Converting Enzyme)",
+      "uniprot_id": "P12821",
+      "relevance": "Key regulator of blood pressure",
+      "function": "Converts angiotensin I to angiotensin II",
+      "drugs": "ACE inhibitors: Lisinopril, Enalapril"
+    },
+    {
+      "name": "Angiotensin II Receptor Type 1",
+      "uniprot_id": "P30556",
+      "relevance": "Mediates vasoconstriction and blood pressure elevation",
+      "function": "G-protein coupled receptor for angiotensin II",
+      "drugs": "Losartan, Valsartan, Irbesartan"
+    }
+  ],
+  "teeth": [
+    {
+      "name": "Amelogenin X (AMELX)",
+      "uniprot_id": "Q99217",
+      "relevance": "Essential for tooth enamel formation",
+      "function": "Primary protein in developing tooth enamel",
+      "drugs": "Enamel regeneration therapies in development"
+    },
+    {
+      "name": "Enamelin (ENAM)",
+      "uniprot_id": "Q9NRM1",
+      "relevance": "Critical for enamel mineralization",
+      "function": "Largest protein in enamel matrix",
+      "drugs": "Biomimetic enamel repair treatments"
+    },
+    {
+      "name": "Dentin Sialophosphoprotein (DSPP)",
+      "uniprot_id": "Q9NZW4",
+      "relevance": "Essential for dentin formation",
+      "function": "Major non-collagenous protein in dentin",
+      "drugs": "Dentin regeneration therapies"
+    }
+  ],
+  "dental": [
+    {
+      "name": "Amelogenin X (AMELX)",
+      "uniprot_id": "Q99217",
+      "relevance": "Essential for tooth enamel formation",
+      "function": "Primary protein in developing tooth enamel",
+      "drugs": "Enamel regeneration therapies in development"
+    }
+  ],
+  "bone": [
+    {
+      "name": "RANKL (Receptor Activator of NF-κB Ligand)",
+      "uniprot_id": "O14788",
+      "relevance": "Critical for bone remodeling and osteoclast formation",
+      "function": "Regulates bone resorption",
+      "drugs": "Denosumab (monoclonal antibody)"
+    },
+    {
+      "name": "Parathyroid Hormone Receptor",
+      "uniprot_id": "Q03431",
+      "relevance": "Regulates calcium homeostasis and bone metabolism",
+      "function": "Mediates PTH effects on bone and kidney",
+      "drugs": "Teriparatide (PTH analog)"
+    }
+  ],
+  "asthma": [
+    {
+      "name": "Beta-2 Adrenergic Receptor",
+      "uniprot_id": "P07550",
+      "relevance": "Key target for bronchodilation",
+      "function": "Mediates bronchial smooth muscle relaxation",
+      "drugs": "Albuterol, Salmeterol, Formoterol"
+    },
+    {
+      "name": "IL-5 (Interleukin-5)",
+      "uniprot_id": "P05113",
+      "relevance": "Promotes eosinophil survival in allergic asthma",
+      "function": "Cytokine involved in eosinophil development",
+      "drugs": "Mepolizumab, Reslizumab"
+    }
+  ],
+  "arthritis": [
+    {
+      "name": "TNF-alpha (Tumor Necrosis Factor Alpha)",
+      "uniprot_id": "P01375",
+      "relevance": "Major driver of rheumatoid arthritis inflammation",
+      "function": "Pro-inflammatory cytokine",
+      "drugs": "Infliximab, Adalimumab, Etanercept"
+    },
+    {
+      "name": "IL-6 (Interleukin-6)",
+      "uniprot_id": "P05231",
+      "relevance": "Contributes to joint inflammation and destruction",
+      "function": "Pro-inflammatory cytokine",
+      "drugs": "Tocilizumab, Sarilumab"
+    }
+  ],
+  "pain": [
+    {
+      "name": "COX-2 (Cyclooxygenase-2)",
+      "uniprot_id": "P35354",
+      "relevance": "Mediates inflammatory pain",
+      "function": "Produces prostaglandins involved in pain signaling",
+      "drugs": "Celecoxib, Ibuprofen, Naproxen"
+    },
+    {
+      "name": "Mu Opioid Receptor",
+      "uniprot_id": "P35372",
+      "relevance": "Primary target for opioid analgesics",
+      "function": "Mediates pain relief and euphoria",
+      "drugs": "Morphine, Fentanyl, Oxycodone"
+    }
+  ],
+  "depression": [
+    {
+      "name": "Serotonin Transporter (SERT)",
+      "uniprot_id": "P31645",
+      "relevance": "Regulates serotonin levels in synaptic cleft",
+      "function": "Reuptakes serotonin from synapse",
+      "drugs": "Fluoxetine, Sertraline, Escitalopram"
+    },
+    {
+      "name": "Serotonin Receptor 5-HT2A",
+      "uniprot_id": "P28223",
+      "relevance": "Involved in mood regulation",
+      "function": "G-protein coupled receptor for serotonin",
+      "drugs": "Atypical antipsychotics"
+    }
+  ],
+  "psoriasis": [
+    {
+      "name": "IL-17A (Interleukin-17A)",
+      "uniprot_id": "Q16552",
+      "relevance": "Key driver of psoriatic inflammation",
+      "function": "Pro-inflammatory cytokine",
+      "drugs": "Secukinumab, Ixekizumab"
+    },
+    {
+      "name": "TNF-alpha (Tumor Necrosis Factor Alpha)",
+      "uniprot_id": "P01375",
+      "relevance": "Promotes inflammation in psoriasis",
+      "function": "Pro-inflammatory cytokine",
+      "drugs": "Adalimumab, Etanercept"
+    }
+  ],
+  "crohn": [
+    {
+      "name": "TNF-alpha (Tumor Necrosis Factor Alpha)",
+      "uniprot_id": "P01375",
+      "relevance": "Drives intestinal inflammation in Crohn disease",
+      "function": "Pro-inflammatory cytokine",
+      "drugs": "Infliximab, Adalimumab"
+    },
+    {
+      "name": "Integrin alpha-4-beta-7",
+      "uniprot_id": "P16144",
+      "relevance": "Mediates lymphocyte homing to gut",
+      "function": "Cell adhesion molecule",
+      "drugs": "Vedolizumab"
+    }
+  ],
+  "kidney": [
+    {
+      "name": "ACE (Angiotensin-Converting Enzyme)",
+      "uniprot_id": "P12821",
+      "relevance": "Protects kidney function in chronic kidney disease",
+      "function": "Regulates blood pressure and kidney filtration",
+      "drugs": "ACE inhibitors"
+    },
+    {
+      "name": "SGLT2 (Sodium-Glucose Cotransporter 2)",
+      "uniprot_id": "P31639",
+      "relevance": "Reduces kidney stress by lowering glucose reabsorption",
+      "function": "Glucose transporter in kidney",
+      "drugs": "Empagliflozin, Dapagliflozin"
+    }
+  ],
+  "sarcopenia": [
+    {
+      "name": "Myostatin (GDF8)",
+      "uniprot_id": "O14793",
+      "relevance": "Negative regulator of muscle growth, key target for sarcopenia",
+      "function": "Inhibits muscle cell growth and differentiation",
+      "drugs": "Myostatin inhibitors in clinical trials"
+    },
+    {
+      "name": "IGF-1 (Insulin-like Growth Factor 1)",
+      "uniprot_id": "P05019",
+      "relevance": "Promotes muscle protein synthesis and prevents atrophy",
+      "function": "Stimulates growth and maintains muscle mass",
+      "drugs": "IGF-1 analogs, growth hormone therapies"
+    },
+    {
+      "name": "mTOR (Mechanistic Target of Rapamycin)",
+      "uniprot_id": "P42345",
+      "relevance": "Central regulator of muscle protein synthesis",
+      "function": "Controls cell growth and protein synthesis",
+      "drugs": "mTOR activators for muscle wasting"
+    }
+  ],
+  "muscle": [
+    {
+      "name": "Myostatin (GDF8)",
+      "uniprot_id": "O14793",
+      "relevance": "Key regulator of muscle mass",
+      "function": "Inhibits muscle growth",
+      "drugs": "Myostatin inhibitors"
+    },
+    {
+      "name": "IGF-1 (Insulin-like Growth Factor 1)",
+      "uniprot_id": "P05019",
+      "relevance": "Promotes muscle growth and repair",
+      "function": "Growth factor for muscle tissue",
+      "drugs": "Growth hormone therapies"
+    }
+  ]
+}
