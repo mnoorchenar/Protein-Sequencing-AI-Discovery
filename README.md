@@ -15,8 +15,12 @@ sdk: docker
 [![Python](https://img.shields.io/badge/Python-3.10+-3b82f6?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.x-4f46e5?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-3b82f6?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Spaces-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar/spaces)
 [![Status](https://img.shields.io/badge/Status-Active-22c55e?style=for-the-badge)](#)
+
+<br/>
+
+[![Live Demo](https://img.shields.io/badge/%E2%96%B6_Live_Demo-Hugging_Face_Space-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/spaces/mnoorchenar/Protein-Sequencing-AI-Discovery)
+[![Source Code](https://img.shields.io/badge/Source_Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery)
 
 <br/>
 
@@ -39,7 +43,7 @@ sdk: docker
 - [Project Structure](#-project-structure)
 - [Author](#-author)
 - [Contributing](#-contributing)
-- [Disclaimer](#disclaimer)
+- [Disclaimer](#️-disclaimer)
 - [License](#-license)
 
 ---
@@ -111,7 +115,6 @@ sdk: docker
 ### Prerequisites
 
 - Python 3.10+
-- Docker & Docker Compose
 - Git
 - HuggingFace account (free) for LLM inference
 
@@ -119,8 +122,8 @@ sdk: docker
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/mnoorchenar/biomedical-protein-target-explorer.git
-cd biomedical-protein-target-explorer
+git clone https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery.git
+cd Protein-Sequencing-AI-Discovery
 
 # 2. Create a virtual environment
 python -m venv venv
@@ -129,11 +132,7 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Configure environment variables
-cp .env.example .env
-# Edit .env and add your HF_TOKEN
-
-# 5. Run the application
+# 4. Run the application
 python app.py
 ```
 
@@ -144,12 +143,10 @@ Open your browser at `http://localhost:7860` 🎉
 ## 🐳 Docker Deployment
 
 ```bash
-# Build and run with Docker Compose
-docker compose up --build
 
 # Or build and run manually
-docker build -t biomedical-protein-target-explorer .
-docker run -p 7860:7860 -e HF_TOKEN=your_token_here biomedical-protein-target-explorer
+docker build -t Protein-Sequencing-AI-Discovery .
+docker run -p 7860:7860 -e HF_TOKEN=your_token_here Protein-Sequencing-AI-Discovery
 ```
 
 ---
@@ -189,22 +186,17 @@ models = {
 ## 📁 Project Structure
 
 ```
-biomedical-protein-target-explorer/
+Protein-Sequencing-AI-Discovery/
 │
-├── 📄 app.py                   # Application entry point — all routes & logic
-│
-├── 📂 templates/
-│   └── 📄 index.html           # Main frontend (query form, results, 3D viewer)
-│
-├── 📂 static/
-│   ├── 📂 css/                 # Stylesheets
-│   └── 📂 js/                  # Client-side scripts (3Dmol.js integration, fetch calls)
-│
-├── 📄 disease_proteins.json    # Curated fallback database (disease → human proteins)
-├── 📄 requirements.txt         # Python dependencies
-├── 📄 Dockerfile               # Container definition (port 7860, HF Spaces ready)
-├── 📄 docker-compose.yml       # Multi-service orchestration
-└── 📄 .env.example             # Environment variable template (HF_TOKEN)
+├── 📂 static/                    # CSS, JavaScript & assets
+│   ├── script.js
+│   └── style.css
+├── 📂 templates/                 # HTML templates
+│   └── index.html
+├── 📄 Dockerfile                 # Container definition (port 7860, HF Spaces ready)
+├── 📄 app.py                     # Application entry point — all routes & logic
+├── 📄 disease_proteins.json      # Curated fallback database (disease → human proteins)
+└── 📄 requirements.txt           # Python dependencies
 ```
 
 ---
@@ -229,7 +221,7 @@ biomedical-protein-target-explorer/
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mnoorchenar)&nbsp;
 [![Personal Site](https://img.shields.io/badge/Website-mnoorchenar.github.io-4f46e5?style=for-the-badge&logo=githubpages&logoColor=white)](https://mnoorchenar.github.io/)&nbsp;
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar/spaces)&nbsp;
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-ffcc00?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/mnoorchenar)&nbsp;
 [![Google Scholar](https://img.shields.io/badge/Scholar-4285F4?style=for-the-badge&logo=googlescholar&logoColor=white)](https://scholar.google.ca/citations?user=nn_Toq0AAAAJ&hl=en)&nbsp;
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mnoorchenar)
 
@@ -253,15 +245,16 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## Disclaimer
+## ⚠️ Disclaimer
 
-<span style="color:red">This project is developed strictly for educational and research purposes and does not constitute professional medical, clinical, or pharmaceutical advice of any kind. All protein and structural data is retrieved from publicly available databases (UniProt, AlphaFold DB, RCSB PDB). No real patient or proprietary data is stored or processed. LLM-generated protein suggestions should be independently verified before use in any research context. This software is provided "as is" without warranty of any kind; use at your own risk.</span>
+> [!WARNING]
+> This project is developed strictly for educational and research purposes and does not constitute professional medical, clinical, or pharmaceutical advice of any kind. All protein and structural data is retrieved from publicly available databases (UniProt, AlphaFold DB, RCSB PDB). No real patient or proprietary data is stored or processed. LLM-generated protein suggestions should be independently verified before use in any research context. This software is provided "as is" without warranty of any kind; use at your own risk.
 
 ---
 
 ## 📜 License
 
-Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+Distributed under the **MIT License**.
 
 ---
 
@@ -269,9 +262,9 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more informa
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:4f46e5&height=120&section=footer&text=Made%20with%20%E2%9D%A4%EF%B8%8F%20by%20Mohammad%20Noorchenarboo&fontColor=ffffff&fontSize=18&fontAlignY=80" width="100%"/>
 
-[![GitHub Stars](https://img.shields.io/github/stars/mnoorchenar/biomedical-protein-target-explorer?style=social)](https://github.com/mnoorchenar/biomedical-protein-target-explorer)
-[![GitHub Forks](https://img.shields.io/github/forks/mnoorchenar/biomedical-protein-target-explorer?style=social)](https://github.com/mnoorchenar/biomedical-protein-target-explorer/fork)
+[![GitHub Stars](https://img.shields.io/github/stars/mnoorchenar/Protein-Sequencing-AI-Discovery?style=social)](https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/mnoorchenar/Protein-Sequencing-AI-Discovery?style=social)](https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery/fork)
 
-<sub>This project is for academic and research purposes only. Protein names, UniProt identifiers, and database content are the property of their respective organizations (UniProt Consortium, EMBL-EBI, RCSB PDB). This project has no affiliation with any commercial pharmaceutical or biotechnology entity.</sub>
+<sub>The name "Biomedical Protein Target Explorer" is used purely for academic and research purposes. Any similarity to existing product names or trademarks is entirely coincidental. This project has no affiliation with any commercial entity.</sub>
 
 </div>
