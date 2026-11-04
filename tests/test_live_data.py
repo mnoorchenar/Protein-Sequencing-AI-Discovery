@@ -37,6 +37,12 @@ def test_ai_style_wrong_accession_is_corrected():
     assert record["uniprot_id"] == "P10636"
 
 
+def test_exact_name_wins_over_a_partial_match():
+    # Q14397 is the glucokinase regulatory protein, not glucokinase itself.
+    record = uniprot.resolve_target({"uniprot_id": "Q14397", "name": "Glucokinase"})
+    assert record["gene"] == "GCK"
+
+
 def test_uniprot_search_returns_human_proteins():
     results = uniprot.search("EGFR lung cancer")
     assert results

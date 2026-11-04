@@ -163,6 +163,58 @@ def test_names_match_rejects_other_proteins(name, record):
     assert not uniprot.names_match(name, record)
 
 
+GCKR = {
+    "uniprot_id": "Q14397",
+    "taxon_id": 9606,
+    "aliases": ["Glucokinase regulatory protein", "GKRP", "GCKR"],
+}
+GCK = {
+    "uniprot_id": "P35557",
+    "taxon_id": 9606,
+    "aliases": ["Hexokinase-4", "Glucokinase", "GCK"],
+}
+PSEUDOGENE = {
+    "uniprot_id": "Q14568",
+    "taxon_id": 9606,
+    "aliases": ["Heat shock protein HSP 90-alpha A2", "Heat shock protein HSP 90-alpha A2 pseudogene"],
+}
+
+
+def test_match_strength_separates_exact_from_partial():
+    assert uniprot.match_strength("Glucokinase", GCK) == uniprot.MATCH_EXACT
+    assert uniprot.match_strength("Glucokinase", GCKR) == uniprot.MATCH_PARTIAL
+    assert uniprot.match_strength("Tau protein", TAU) == uniprot.MATCH_PARTIAL
+    assert uniprot.match_strength("Tau protein", HER2) == uniprot.MATCH_NONE
+
+
+def test_partial_match_never_accepts_a_pseudogene():
+    assert uniprot.match_strength("Heat shock protein 90 alpha", PSEUDOGENE) == uniprot.MATCH_NONE
+    assert uniprot.match_strength("HSP 90-alpha A2 pseudogene", PSEUDOGENE) == uniprot.MATCH_NONE
+
+
+def test_exact_name_beats_a_partial_match_on_the_given_accession(monkeypatch):
+    monkeypatch.setattr(uniprot, "get_protein", lambda accession: GCKR)
+    monkeypatch.setattr(uniprot, "search", lambda name, limit=5: [GCKR, GCK])
+    record = uniprot.resolve_target({"uniprot_id": "Q14397", "name": "Glucokinase"})
+    assert record["uniprot_id"] == "P35557"
+
+
+def test_partial_match_is_kept_when_nothing_better_exists(monkeypatch):
+    tau = {**TAU, "uniprot_id": "P10636", "taxon_id": 9606}
+    monkeypatch.setattr(uniprot, "get_protein", lambda accession: tau)
+    monkeypatch.setattr(uniprot, "search", lambda name, limit=5: [HER2])
+    assert uniprot.resolve_target({"uniprot_id": "P10636", "name": "Tau protein"}) is tau
+
+
+def test_exact_match_on_the_given_accession_needs_no_search(monkeypatch):
+    def fail(name, limit=5):
+        raise AssertionError("should not search")
+
+    monkeypatch.setattr(uniprot, "get_protein", lambda accession: GCK)
+    monkeypatch.setattr(uniprot, "search", fail)
+    assert uniprot.resolve_target({"uniprot_id": "P35557", "name": "Glucokinase"}) is GCK
+
+
 def test_names_match_without_aliases_is_false():
     assert not uniprot.names_match("HER2", {})
 

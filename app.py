@@ -200,6 +200,8 @@ def create_app(test_config=None):
             )
             targets, insights = llm.parse_targets(text)
             proteins = _verify_ai_targets(targets)
+            if not proteins:
+                logger.warning("%s gave %d targets, and none were confirmed", model_used, len(targets))
         except llm.LLMUnavailable as unavailable:
             logger.warning("LLM unavailable: %s", unavailable)
 
@@ -294,7 +296,7 @@ def create_app(test_config=None):
             prompts.REFINE_QUESTION_SYSTEM,
             prompts.refine_question_user(query, answers),
             model=data.get("model"),
-            max_tokens=800,
+            max_tokens=1200,
         )
         question = llm.clean_question(text)
         if not question:
@@ -317,7 +319,7 @@ def create_app(test_config=None):
                     prompts.REFINE_KEYWORDS_SYSTEM,
                     prompts.refine_keywords_user(query, answers),
                     model=data.get("model"),
-                    max_tokens=800,
+                    max_tokens=1200,
                 )
                 keywords = llm.clean_keywords(text)
             except llm.LLMUnavailable as unavailable:

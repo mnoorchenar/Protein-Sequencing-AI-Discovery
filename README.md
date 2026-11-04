@@ -17,7 +17,7 @@ Turn a research question into human protein drug targets, check them against Uni
 
 LLMs often produce a convincing explanation attached to the wrong protein ID. This project treats model output as an unverified claim: a suggestion is shown only if UniProt confirms both its identity and that it's human.
 
-![EGFR's AlphaFold structure colored by model confidence](docs/structure-viewer.png)
+![AI-suggested lung cancer targets beside EGFR's AlphaFold structure, colored by model confidence](docs/app.png)
 
 ## Features
 
@@ -139,6 +139,7 @@ tests/                  Test suite
 ## Limitations
 
 - **Relevance isn't verified.** UniProt confirms what a protein is, not that it's a good target for your question. Relevance and drug notes from the AI can still be wrong.
+- **Name matching isn't perfect.** It corrects most wrong IDs, but a vague or oddly formatted name from the model can still resolve to a related protein.
 - **It doesn't rank targets.** There's no scoring from genetic evidence or tractability, which a platform such as Open Targets could provide.
 - **The curated database is small.** It covers 20 disease terms, and its drug notes need occasional review as approvals change.
 - **Keyword search is literal.** UniProt matches can be only loosely related to a multi-word query.

@@ -32,6 +32,8 @@ STOP_WORDS = {
 }
 QUERY_OPERATORS = {"AND", "OR", "NOT"}
 
+MATCH_NONE, MATCH_PARTIAL, MATCH_EXACT = 0, 1, 2
+
 # Ignored when comparing protein names, because they say nothing about identity.
 FILLER_NAME_WORDS = {"human", "of", "protein", "the"}
 # Too generic to identify a protein when they're the only word that matches.
@@ -100,33 +102,44 @@ def _tokens(text):
     return set(re.findall(r"[a-z0-9]+", text.lower()))
 
 
-def names_match(name, record):
-    """Check that a protein name refers to this record.
+def match_strength(name, record):
+    """Rate how well a protein name identifies this record.
 
     A real human accession isn't enough: LLMs often pair a correct explanation
     with the accession of an unrelated protein.
+
+    MATCH_EXACT means the name or a word in it is one of the protein's known names.
+    MATCH_PARTIAL means every word appears in one of its names, so "Tau protein"
+    matches "Microtubule-associated protein tau". That's weaker, because "Glucokinase"
+    also matches "Glucokinase regulatory protein", which is a different protein.
     """
     aliases = record.get("aliases") or []
     if not name or not aliases:
-        return False
+        return MATCH_NONE
 
     known = {_normalize(alias) for alias in aliases}
     segments = re.split(r"[(),/;]", name)
     if any(_normalize(segment) in known for segment in segments if _normalize(segment)):
-        return True
+        return MATCH_EXACT
 
     for word in name.split() + list(_tokens(name)):
         normalized = _normalize(word)
         if len(normalized) >= 3 and normalized not in GENERIC_NAME_WORDS and normalized in known:
-            return True
+            return MATCH_EXACT
 
-    # "Tau protein" matches "Microtubule-associated protein tau",
-    # but "Insulin receptor" doesn't match "Insulin-degrading enzyme".
+    # A pseudogene shares its parent's name, but it's rarely the protein that was meant.
+    if any("pseudogene" in alias.lower() for alias in aliases):
+        return MATCH_NONE
+
     for segment in segments:
         wanted = _tokens(segment) - FILLER_NAME_WORDS
         if wanted and any(wanted <= _tokens(alias) for alias in aliases):
-            return True
-    return False
+            return MATCH_PARTIAL
+    return MATCH_NONE
+
+
+def names_match(name, record):
+    return match_strength(name, record) != MATCH_NONE
 
 
 def _summarize_function(text):
@@ -299,21 +312,30 @@ def search(query, limit=5):
 
 
 def find_by_name(name):
-    """Find the human protein with this name, or None."""
+    """Find the human protein with this name, preferring exact matches, or None."""
     try:
         results = search(name, limit=5)
     except UpstreamError:
         return None
-    return next((record for record in results if names_match(name, record)), None)
+    if not results:
+        return None
+    best = max(results, key=lambda record: match_strength(name, record))
+    return best if match_strength(name, best) != MATCH_NONE else None
 
 
 def resolve_target(target):
     """Return the record an AI suggestion really refers to, or None if it can't be confirmed."""
+    name = target["name"]
     record = get_protein(target["uniprot_id"])
-    if is_human(record) and names_match(target["name"], record):
+    strength = match_strength(name, record) if is_human(record) else MATCH_NONE
+    if strength == MATCH_EXACT:
         return record
-    logger.info("AI accession %s didn't match '%s'", target["uniprot_id"], target["name"])
-    return find_by_name(target["name"]) if target["name"] else None
+
+    logger.info("AI accession %s isn't an exact match for '%s'", target["uniprot_id"], name)
+    found = find_by_name(name) if name else None
+    if found and match_strength(name, found) == MATCH_EXACT:
+        return found
+    return record if strength == MATCH_PARTIAL else found
 
 
 def resolve_targets(targets):

@@ -195,6 +195,30 @@ class TestComplete:
         _, used = llm.complete("sys", "user")
         assert used == GROQ_MODELS[1]
 
+    def test_cut_off_answer_tries_next_model(self, fake_session):
+        cut_off = SimpleNamespace(
+            status_code=200,
+            text="",
+            json=lambda: {
+                "choices": [{"finish_reason": "length", "message": {"content": '[{"name": "EG'}}]
+            },
+        )
+        fake_session.outcomes = [cut_off, reply("answer")]
+        _, used = llm.complete("sys", "user")
+        assert used == GROQ_MODELS[1]
+
+    def test_model_params_are_only_sent_to_that_model(self, fake_session):
+        fake_session.outcomes = [failure(500), reply("answer")]
+        llm.complete("sys", "user")
+        assert fake_session.calls[0]["json"]["reasoning_effort"] == "low"
+        assert "reasoning_effort" not in fake_session.calls[1]["json"]
+
+    def test_token_cap_only_applies_to_that_model(self, fake_session):
+        fake_session.outcomes = [failure(500), reply("answer")]
+        llm.complete("sys", "user", max_tokens=2500)
+        assert fake_session.calls[0]["json"]["max_tokens"] == 2500
+        assert fake_session.calls[1]["json"]["max_tokens"] == 1000
+
     def test_attempts_are_capped(self, fake_session):
         fake_session.outcomes = [failure(503)] * 10
         with pytest.raises(llm.LLMUnavailable):

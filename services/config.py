@@ -4,7 +4,10 @@ import os
 
 # The first provider with an API key set is used. Both offer free access and the
 # same OpenAI-compatible API. List only models the provider serves for free accounts,
-# because a model it can't route fails with a 400.
+# because a model it can't route fails with a 400. A model's "params" are added to its
+# requests. Reasoning models need low effort, or reasoning uses up the token budget.
+# A model's "max_tokens" caps its requests, because Groq rejects any request that asks
+# for more than the model's output tokens per minute.
 PROVIDERS = [
     {
         "name": "Groq",
@@ -15,16 +18,19 @@ PROVIDERS = [
                 "id": "openai/gpt-oss-20b",
                 "label": "gpt-oss 20B",
                 "note": "Fast, with good reasoning.",
+                "params": {"reasoning_effort": "low"},
             },
             {
                 "id": "qwen/qwen3.8-27b",
                 "label": "Qwen 3.8 27B",
                 "note": "A good alternative for structured answers.",
+                "max_tokens": 1000,
             },
             {
                 "id": "openai/gpt-oss-120b",
                 "label": "gpt-oss 120B",
                 "note": "Largest model, but slower.",
+                "params": {"reasoning_effort": "low"},
             },
         ],
     },
@@ -88,3 +94,15 @@ def catalog():
 
 def model_ids():
     return [model["id"] for model in catalog()]
+
+
+def _model_entry(model_id):
+    return next((model for model in catalog() if model["id"] == model_id), {})
+
+
+def model_params(model_id):
+    return _model_entry(model_id).get("params", {})
+
+
+def token_limit(model_id, requested):
+    return min(requested, _model_entry(model_id).get("max_tokens", requested))

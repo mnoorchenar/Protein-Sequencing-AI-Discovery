@@ -54,10 +54,11 @@ def _raise_for_account_problem(response, provider):
         raise LLMAuthError(f"AI is unavailable: the server's {name} key lacks permission.")
 
 
-def complete(system, user, *, model=None, max_tokens=1500, temperature=0.3):
+def complete(system, user, *, model=None, max_tokens=2500, temperature=0.3):
     """Return (text, model_used), trying fallback models when one fails.
 
     max_tokens has to leave room for reasoning models, whose reasoning counts against it.
+    A cut-off answer counts as a failure, because truncated JSON can't be parsed.
     """
     provider = config.active_provider()
     if not provider:
@@ -78,8 +79,9 @@ def complete(system, user, *, model=None, max_tokens=1500, temperature=0.3):
                 json={
                     "model": candidate,
                     "messages": messages,
-                    "max_tokens": max_tokens,
+                    "max_tokens": config.token_limit(candidate, max_tokens),
                     "temperature": temperature,
+                    **config.model_params(candidate),
                 },
                 timeout=config.LLM_TIMEOUT_SECONDS,
             )
@@ -98,9 +100,14 @@ def complete(system, user, *, model=None, max_tokens=1500, temperature=0.3):
             continue
 
         try:
-            content = response.json()["choices"][0]["message"].get("content") or ""
+            choice = response.json()["choices"][0]
+            content = choice["message"].get("content") or ""
         except (ValueError, KeyError, IndexError, TypeError, AttributeError):
             logger.warning("Model %s returned an unexpected response", candidate)
+            continue
+
+        if choice.get("finish_reason") == "length":
+            logger.warning("Model %s ran out of tokens after %s", candidate, max_tokens)
             continue
 
         text = _strip_thinking(content)
