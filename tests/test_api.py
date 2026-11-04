@@ -31,6 +31,7 @@ RECORDS = {
 def uniprot_data(monkeypatch):
     monkeypatch.setattr(uniprot, "get_protein", lambda accession: RECORDS.get(accession))
     monkeypatch.setattr(uniprot, "search", lambda query, limit=5: [])
+    monkeypatch.setattr(uniprot, "_search_gene", lambda symbol: [])
 
 
 @pytest.fixture

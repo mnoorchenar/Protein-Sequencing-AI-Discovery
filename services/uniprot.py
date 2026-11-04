@@ -34,6 +34,10 @@ QUERY_OPERATORS = {"AND", "OR", "NOT"}
 
 MATCH_NONE, MATCH_PARTIAL, MATCH_EXACT = 0, 1, 2
 
+# Words that look like gene symbols, such as MDM2 or IL17RA.
+GENE_SYMBOL_RE = re.compile(r"\b[A-Z][A-Z0-9-]{2,14}\b")
+MAX_GENE_LOOKUPS = 2
+
 # Ignored when comparing protein names, because they say nothing about identity.
 FILLER_NAME_WORDS = {"human", "of", "protein", "the"}
 # Too generic to identify a protein when they're the only word that matches.
@@ -268,14 +272,11 @@ def extract_keywords(query):
     return keywords or words
 
 
-def _search_once(terms, reviewed, limit):
-    clauses = [f"({' '.join(terms)})", f"organism_id:{HUMAN_TAXON_ID}"]
-    if reviewed:
-        clauses.append("reviewed:true")
+def _run_query(query, limit):
     response = session.get(
         f"{BASE_URL}/search",
         params={
-            "query": " AND ".join(clauses),
+            "query": query,
             "fields": ENTRY_FIELDS,
             "format": "json",
             "size": limit,
@@ -284,6 +285,23 @@ def _search_once(terms, reviewed, limit):
     )
     response.raise_for_status()
     return response.json().get("results", [])
+
+
+def _search_once(terms, reviewed, limit):
+    clauses = [f"({' '.join(terms)})", f"organism_id:{HUMAN_TAXON_ID}"]
+    if reviewed:
+        clauses.append("reviewed:true")
+    return _run_query(" AND ".join(clauses), limit)
+
+
+def _search_gene(symbol):
+    """Look up an exact gene symbol. Free-text search can miss it, or rank a relative first."""
+    query = f"gene_exact:{symbol} AND organism_id:{HUMAN_TAXON_ID} AND reviewed:true"
+    try:
+        return [parse_entry(entry) for entry in _run_query(query, 3)]
+    except (requests.RequestException, ValueError) as error:
+        logger.warning("UniProt gene lookup failed: %s", error)
+        return []
 
 
 def search(query, limit=5):
@@ -313,6 +331,11 @@ def search(query, limit=5):
 
 def find_by_name(name):
     """Find the human protein with this name, preferring exact matches, or None."""
+    for symbol in GENE_SYMBOL_RE.findall(name)[:MAX_GENE_LOOKUPS]:
+        for record in _search_gene(symbol):
+            if match_strength(name, record) == MATCH_EXACT:
+                return record
+
     try:
         results = search(name, limit=5)
     except UpstreamError:

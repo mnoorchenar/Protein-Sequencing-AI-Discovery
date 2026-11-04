@@ -88,6 +88,10 @@ class TestParseTargets:
         targets, _ = llm.parse_targets(text)
         assert targets == []
 
+    def test_typographic_hyphens_in_names_become_plain_hyphens(self):
+        targets, _ = llm.parse_targets('[{"uniprot_id": "P27487", "name": "Dipeptidyl peptidase\u20114"}]')
+        assert targets[0]["name"] == "Dipeptidyl peptidase-4"
+
     def test_non_string_fields_are_blanked(self):
         targets, _ = llm.parse_targets('[{"uniprot_id": "P00533", "drugs": ["a"], "name": 5}]')
         assert targets[0]["drugs"] == ""

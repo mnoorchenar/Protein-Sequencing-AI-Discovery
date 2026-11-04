@@ -1,0 +1,765 @@
+{
+  "date": "2026-11-04",
+  "queries_answered": 20,
+  "queries_total": 20,
+  "suggestions": 94,
+  "summary": {
+    "confirmed": 19,
+    "corrected": 73,
+    "dropped": 2
+  },
+  "rows": [
+    {
+      "query": "Alzheimer's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Beta-secretase 1 (BACE1)",
+      "suggested_id": "P51608",
+      "resolved_id": "P56817",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Alzheimer's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Presenilin-1 (PSEN1)",
+      "suggested_id": "P49771",
+      "resolved_id": "P49768",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Alzheimer's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Amyloid-β precursor protein (APP)",
+      "suggested_id": "P05067",
+      "resolved_id": "P05067",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "Alzheimer's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Triggering receptor expressed on myeloid cells 2 (TREM2)",
+      "suggested_id": "Q9Y6X3",
+      "resolved_id": "Q9NZC2",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Alzheimer's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Apolipoprotein E (APOE)",
+      "suggested_id": "P02649",
+      "resolved_id": "P02649",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "Parkinson's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Leucine-rich repeat kinase 2 (LRRK2)",
+      "suggested_id": "P35268",
+      "resolved_id": "Q5S007",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Parkinson's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Glycogen synthase kinase 3 beta (GSK3B)",
+      "suggested_id": "P49841",
+      "resolved_id": "P49841",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "Parkinson's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "PTEN-induced putative kinase 1 (PINK1)",
+      "suggested_id": "Q9H3K2",
+      "resolved_id": "Q9BXM7",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Parkinson's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Alpha-synuclein (SNCA)",
+      "suggested_id": "P37840",
+      "resolved_id": "P37840",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "type 2 diabetes",
+      "model": "openai/gpt-oss-20b",
+      "name": "Glucagon-like peptide-1 receptor",
+      "suggested_id": "P41159",
+      "resolved_id": "P43220",
+      "outcome": "corrected"
+    },
+    {
+      "query": "type 2 diabetes",
+      "model": "openai/gpt-oss-20b",
+      "name": "Peroxisome proliferator-activated receptor gamma",
+      "suggested_id": "P35232",
+      "resolved_id": "P37231",
+      "outcome": "corrected"
+    },
+    {
+      "query": "type 2 diabetes",
+      "model": "openai/gpt-oss-20b",
+      "name": "Sodium-glucose cotransporter 2",
+      "suggested_id": "P41143",
+      "resolved_id": "P31639",
+      "outcome": "corrected"
+    },
+    {
+      "query": "type 2 diabetes",
+      "model": "openai/gpt-oss-20b",
+      "name": "Dipeptidyl peptidase-4",
+      "suggested_id": "P30041",
+      "resolved_id": "P27487",
+      "outcome": "corrected"
+    },
+    {
+      "query": "lung cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Epidermal growth factor receptor",
+      "suggested_id": "P00533",
+      "resolved_id": "P00533",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "lung cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Anaplastic lymphoma kinase",
+      "suggested_id": "Q9H3K2",
+      "resolved_id": "Q9UM73",
+      "outcome": "corrected"
+    },
+    {
+      "query": "lung cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "MET proto-oncogene, receptor tyrosine kinase",
+      "suggested_id": "P08571",
+      "resolved_id": "P08581",
+      "outcome": "corrected"
+    },
+    {
+      "query": "lung cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Programmed death-ligand 1",
+      "suggested_id": "Q9H9Z2",
+      "resolved_id": "Q9NZQ7",
+      "outcome": "corrected"
+    },
+    {
+      "query": "lung cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Cyclin-dependent kinase 4",
+      "suggested_id": "P49841",
+      "resolved_id": null,
+      "outcome": "dropped"
+    },
+    {
+      "query": "breast cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Epidermal growth factor receptor",
+      "suggested_id": "P00533",
+      "resolved_id": "P00533",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "breast cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "HER2/neu (ERBB2)",
+      "suggested_id": "P04626",
+      "resolved_id": "P04626",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "breast cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Phosphatidylinositol-4,5-bisphosphate 3-kinase catalytic subunit alpha",
+      "suggested_id": "P42330",
+      "resolved_id": "P42336",
+      "outcome": "corrected"
+    },
+    {
+      "query": "breast cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Cyclin-dependent kinase 4",
+      "suggested_id": "P23219",
+      "resolved_id": null,
+      "outcome": "dropped"
+    },
+    {
+      "query": "breast cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "Breast cancer type 1 susceptibility protein",
+      "suggested_id": "P38398",
+      "resolved_id": "P38398",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "colorectal cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "EGFR",
+      "suggested_id": "P00533",
+      "resolved_id": "P00533",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "colorectal cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "VEGFA",
+      "suggested_id": "P01584",
+      "resolved_id": "P15692",
+      "outcome": "corrected"
+    },
+    {
+      "query": "colorectal cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "BRAF",
+      "suggested_id": "P15056",
+      "resolved_id": "P15056",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "colorectal cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "PIK3CA",
+      "suggested_id": "P42345",
+      "resolved_id": "P42336",
+      "outcome": "corrected"
+    },
+    {
+      "query": "colorectal cancer",
+      "model": "openai/gpt-oss-20b",
+      "name": "KRAS",
+      "suggested_id": "P01116",
+      "resolved_id": "P01116",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "melanoma",
+      "model": "openai/gpt-oss-20b",
+      "name": "BRAF",
+      "suggested_id": "P15056",
+      "resolved_id": "P15056",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "melanoma",
+      "model": "openai/gpt-oss-20b",
+      "name": "MITF",
+      "suggested_id": "Q9Y6X3",
+      "resolved_id": "O75030",
+      "outcome": "corrected"
+    },
+    {
+      "query": "melanoma",
+      "model": "openai/gpt-oss-20b",
+      "name": "CTLA-4",
+      "suggested_id": "P10855",
+      "resolved_id": "P16410",
+      "outcome": "corrected"
+    },
+    {
+      "query": "melanoma",
+      "model": "openai/gpt-oss-20b",
+      "name": "CDK4",
+      "suggested_id": "P15291",
+      "resolved_id": "P11802",
+      "outcome": "corrected"
+    },
+    {
+      "query": "acute myeloid leukemia",
+      "model": "openai/gpt-oss-20b",
+      "name": "FMS-like tyrosine kinase 3 (FLT3)",
+      "suggested_id": "Q9Y6X5",
+      "resolved_id": "P36888",
+      "outcome": "corrected"
+    },
+    {
+      "query": "acute myeloid leukemia",
+      "model": "openai/gpt-oss-20b",
+      "name": "Isocitrate dehydrogenase 1 (IDH1)",
+      "suggested_id": "P31749",
+      "resolved_id": "O75874",
+      "outcome": "corrected"
+    },
+    {
+      "query": "acute myeloid leukemia",
+      "model": "openai/gpt-oss-20b",
+      "name": "Isocitrate dehydrogenase 2 (IDH2)",
+      "suggested_id": "P31750",
+      "resolved_id": "P48735",
+      "outcome": "corrected"
+    },
+    {
+      "query": "acute myeloid leukemia",
+      "model": "openai/gpt-oss-20b",
+      "name": "B-cell lymphoma 2 (BCL2)",
+      "suggested_id": "P10145",
+      "resolved_id": "P10415",
+      "outcome": "corrected"
+    },
+    {
+      "query": "acute myeloid leukemia",
+      "model": "openai/gpt-oss-20b",
+      "name": "CD33 antigen",
+      "suggested_id": "P21579",
+      "resolved_id": "P20138",
+      "outcome": "corrected"
+    },
+    {
+      "query": "rheumatoid arthritis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Tumor necrosis factor (TNF)",
+      "suggested_id": "P01375",
+      "resolved_id": "P01375",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "rheumatoid arthritis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-6 receptor (IL6R)",
+      "suggested_id": "P14780",
+      "resolved_id": "P08887",
+      "outcome": "corrected"
+    },
+    {
+      "query": "rheumatoid arthritis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Janus kinase 1 (JAK1)",
+      "suggested_id": "P51570",
+      "resolved_id": "P23458",
+      "outcome": "corrected"
+    },
+    {
+      "query": "rheumatoid arthritis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Tyrosine-protein kinase 2 (TYK2)",
+      "suggested_id": "Q9Y6X9",
+      "resolved_id": "P29597",
+      "outcome": "corrected"
+    },
+    {
+      "query": "rheumatoid arthritis",
+      "model": "openai/gpt-oss-20b",
+      "name": "CD40",
+      "suggested_id": "P14778",
+      "resolved_id": "P25942",
+      "outcome": "corrected"
+    },
+    {
+      "query": "psoriasis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Tumor necrosis factor (TNF)",
+      "suggested_id": "P01375",
+      "resolved_id": "P01375",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "psoriasis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-23 receptor (IL23R)",
+      "suggested_id": "Q9Y6Q5",
+      "resolved_id": "Q5VWK5",
+      "outcome": "corrected"
+    },
+    {
+      "query": "psoriasis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-17 receptor A (IL17RA)",
+      "suggested_id": "Q9Y5S5",
+      "resolved_id": "Q96F46",
+      "outcome": "corrected"
+    },
+    {
+      "query": "psoriasis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Phosphodiesterase-4B (PDE4B)",
+      "suggested_id": "P51608",
+      "resolved_id": "Q07343",
+      "outcome": "corrected"
+    },
+    {
+      "query": "psoriasis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Janus kinase 1 (JAK1)",
+      "suggested_id": "P49841",
+      "resolved_id": "P23458",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Crohn's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Tumor necrosis factor (TNF)",
+      "suggested_id": "P01375",
+      "resolved_id": "P01375",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "Crohn's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-12/23 p40 subunit (IL12B)",
+      "suggested_id": "P06702",
+      "resolved_id": "P29460",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Crohn's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Integrin alpha-4 (ITGA4)",
+      "suggested_id": "P05101",
+      "resolved_id": "P13612",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Crohn's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Integrin beta-7 (ITGB7)",
+      "suggested_id": "P05102",
+      "resolved_id": "P26010",
+      "outcome": "corrected"
+    },
+    {
+      "query": "Crohn's disease",
+      "model": "openai/gpt-oss-20b",
+      "name": "Janus kinase 2 (JAK2)",
+      "suggested_id": "P15144",
+      "resolved_id": "O60674",
+      "outcome": "corrected"
+    },
+    {
+      "query": "asthma",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-5 receptor subunit alpha (IL5RA)",
+      "suggested_id": "Q9H3K2",
+      "resolved_id": "Q01344",
+      "outcome": "corrected"
+    },
+    {
+      "query": "asthma",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-4 receptor subunit alpha (IL4RA)",
+      "suggested_id": "P15144",
+      "resolved_id": "P24394",
+      "outcome": "corrected"
+    },
+    {
+      "query": "asthma",
+      "model": "openai/gpt-oss-20b",
+      "name": "Prostaglandin D2 receptor 2 (CRTH2/DP2)",
+      "suggested_id": "P48544",
+      "resolved_id": "Q9Y5Y4",
+      "outcome": "corrected"
+    },
+    {
+      "query": "asthma",
+      "model": "openai/gpt-oss-20b",
+      "name": "Phosphodiesterase 4B (PDE4B)",
+      "suggested_id": "P15154",
+      "resolved_id": "Q07343",
+      "outcome": "corrected"
+    },
+    {
+      "query": "asthma",
+      "model": "openai/gpt-oss-20b",
+      "name": "Thymic stromal lymphopoietin receptor (TSLPR)",
+      "suggested_id": "Q9Y6B8",
+      "resolved_id": "Q9HC73",
+      "outcome": "corrected"
+    },
+    {
+      "query": "hypertension",
+      "model": "openai/gpt-oss-20b",
+      "name": "Angiotensin-converting enzyme",
+      "suggested_id": "P12821",
+      "resolved_id": "P12821",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "hypertension",
+      "model": "openai/gpt-oss-20b",
+      "name": "Angiotensin II receptor type 1",
+      "suggested_id": "P35222",
+      "resolved_id": "P30556",
+      "outcome": "corrected"
+    },
+    {
+      "query": "hypertension",
+      "model": "openai/gpt-oss-20b",
+      "name": "Renin",
+      "suggested_id": "P15121",
+      "resolved_id": "P00797",
+      "outcome": "corrected"
+    },
+    {
+      "query": "hypertension",
+      "model": "openai/gpt-oss-20b",
+      "name": "Endothelial nitric oxide synthase",
+      "suggested_id": "P35232",
+      "resolved_id": "P29474",
+      "outcome": "corrected"
+    },
+    {
+      "query": "hypertension",
+      "model": "openai/gpt-oss-20b",
+      "name": "Angiotensinogen",
+      "suggested_id": "P01019",
+      "resolved_id": "P01019",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "heart failure",
+      "model": "openai/gpt-oss-20b",
+      "name": "ATP2A2 (SERCA2a)",
+      "suggested_id": "P54768",
+      "resolved_id": "P16615",
+      "outcome": "corrected"
+    },
+    {
+      "query": "heart failure",
+      "model": "openai/gpt-oss-20b",
+      "name": "ADRB1 (Beta-1 adrenergic receptor)",
+      "suggested_id": "P07550",
+      "resolved_id": "P08588",
+      "outcome": "corrected"
+    },
+    {
+      "query": "heart failure",
+      "model": "openai/gpt-oss-20b",
+      "name": "ACE (Angiotensin-converting enzyme)",
+      "suggested_id": "P01019",
+      "resolved_id": "P12821",
+      "outcome": "corrected"
+    },
+    {
+      "query": "heart failure",
+      "model": "openai/gpt-oss-20b",
+      "name": "GRK5 (G protein-coupled receptor kinase 5)",
+      "suggested_id": "Q9Y5Y8",
+      "resolved_id": "P34947",
+      "outcome": "corrected"
+    },
+    {
+      "query": "heart failure",
+      "model": "openai/gpt-oss-20b",
+      "name": "NPPA (Atrial natriuretic peptide)",
+      "suggested_id": "P06748",
+      "resolved_id": "P01160",
+      "outcome": "corrected"
+    },
+    {
+      "query": "obesity",
+      "model": "openai/gpt-oss-20b",
+      "name": "Melanocortin 4 receptor",
+      "suggested_id": "P41159",
+      "resolved_id": "P32245",
+      "outcome": "corrected"
+    },
+    {
+      "query": "obesity",
+      "model": "openai/gpt-oss-20b",
+      "name": "Peroxisome proliferator-activated receptor gamma",
+      "suggested_id": "P52907",
+      "resolved_id": "P37231",
+      "outcome": "corrected"
+    },
+    {
+      "query": "obesity",
+      "model": "openai/gpt-oss-20b",
+      "name": "Fat mass and obesity-associated protein",
+      "suggested_id": "Q9Y6X3",
+      "resolved_id": "Q9C0B1",
+      "outcome": "corrected"
+    },
+    {
+      "query": "obesity",
+      "model": "openai/gpt-oss-20b",
+      "name": "G protein-coupled receptor 119",
+      "suggested_id": "Q9H3K2",
+      "resolved_id": "Q8TDV5",
+      "outcome": "corrected"
+    },
+    {
+      "query": "osteoporosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "TNFSF11 (RANKL)",
+      "suggested_id": "P51572",
+      "resolved_id": "O14788",
+      "outcome": "corrected"
+    },
+    {
+      "query": "osteoporosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "TNFRSF11A (RANK)",
+      "suggested_id": "P51571",
+      "resolved_id": "Q9Y6Q6",
+      "outcome": "corrected"
+    },
+    {
+      "query": "osteoporosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "TNFRSF11B (OPG)",
+      "suggested_id": "P51573",
+      "resolved_id": "O00300",
+      "outcome": "corrected"
+    },
+    {
+      "query": "osteoporosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "SOST (Sclerostin)",
+      "suggested_id": "Q9Y5X9",
+      "resolved_id": "Q9BQB4",
+      "outcome": "corrected"
+    },
+    {
+      "query": "osteoporosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "PTH1R (Parathyroid hormone 1 receptor)",
+      "suggested_id": "P23219",
+      "resolved_id": "Q03431",
+      "outcome": "corrected"
+    },
+    {
+      "query": "major depressive disorder",
+      "model": "openai/gpt-oss-20b",
+      "name": "Serotonin transporter (SLC6A4)",
+      "suggested_id": "P31689",
+      "resolved_id": "P31645",
+      "outcome": "corrected"
+    },
+    {
+      "query": "major depressive disorder",
+      "model": "openai/gpt-oss-20b",
+      "name": "Serotonin receptor 2A (HTR2A)",
+      "suggested_id": "P28224",
+      "resolved_id": "P28223",
+      "outcome": "corrected"
+    },
+    {
+      "query": "major depressive disorder",
+      "model": "openai/gpt-oss-20b",
+      "name": "Monoamine oxidase A (MAOA)",
+      "suggested_id": "P10855",
+      "resolved_id": "P21397",
+      "outcome": "corrected"
+    },
+    {
+      "query": "major depressive disorder",
+      "model": "openai/gpt-oss-20b",
+      "name": "Glycogen synthase kinase 3 beta (GSK3B)",
+      "suggested_id": "P49841",
+      "resolved_id": "P49841",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "major depressive disorder",
+      "model": "openai/gpt-oss-20b",
+      "name": "Neurotrophin receptor TrkB (NTRK2)",
+      "suggested_id": "P41235",
+      "resolved_id": "Q16620",
+      "outcome": "corrected"
+    },
+    {
+      "query": "multiple sclerosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Integrin alpha-4 (ITGA4)",
+      "suggested_id": "P23280",
+      "resolved_id": "P13612",
+      "outcome": "corrected"
+    },
+    {
+      "query": "multiple sclerosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Sphingosine-1-phosphate receptor 1 (S1PR1)",
+      "suggested_id": "P51681",
+      "resolved_id": "P21453",
+      "outcome": "corrected"
+    },
+    {
+      "query": "multiple sclerosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Interleukin-2 receptor subunit alpha (IL2RA)",
+      "suggested_id": "P31946",
+      "resolved_id": "P01589",
+      "outcome": "corrected"
+    },
+    {
+      "query": "cystic fibrosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Cystic fibrosis transmembrane conductance regulator",
+      "suggested_id": "P13535",
+      "resolved_id": "P13569",
+      "outcome": "corrected"
+    },
+    {
+      "query": "cystic fibrosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Epithelial sodium channel subunit alpha (SCNN1A)",
+      "suggested_id": "P21954",
+      "resolved_id": "P37088",
+      "outcome": "corrected"
+    },
+    {
+      "query": "cystic fibrosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Epithelial sodium channel subunit beta (SCNN1B)",
+      "suggested_id": "P21955",
+      "resolved_id": "P51168",
+      "outcome": "corrected"
+    },
+    {
+      "query": "cystic fibrosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Epithelial sodium channel subunit gamma (SCNN1G)",
+      "suggested_id": "P21956",
+      "resolved_id": "P51170",
+      "outcome": "corrected"
+    },
+    {
+      "query": "cystic fibrosis",
+      "model": "openai/gpt-oss-20b",
+      "name": "Sodium/hydrogen exchanger 3 (SLC9A3)",
+      "suggested_id": "P48052",
+      "resolved_id": "P48764",
+      "outcome": "corrected"
+    },
+    {
+      "query": "HIV host factors",
+      "model": "openai/gpt-oss-20b",
+      "name": "CCR5",
+      "suggested_id": "P10855",
+      "resolved_id": "P51681",
+      "outcome": "corrected"
+    },
+    {
+      "query": "HIV host factors",
+      "model": "openai/gpt-oss-20b",
+      "name": "CXCR4",
+      "suggested_id": "P32246",
+      "resolved_id": "P61073",
+      "outcome": "corrected"
+    },
+    {
+      "query": "HIV host factors",
+      "model": "openai/gpt-oss-20b",
+      "name": "CD4",
+      "suggested_id": "P01730",
+      "resolved_id": "P01730",
+      "outcome": "confirmed"
+    },
+    {
+      "query": "HIV host factors",
+      "model": "openai/gpt-oss-20b",
+      "name": "HSP90AA1",
+      "suggested_id": "P11142",
+      "resolved_id": "P07900",
+      "outcome": "corrected"
+    },
+    {
+      "query": "HIV host factors",
+      "model": "openai/gpt-oss-20b",
+      "name": "Cyclin T1",
+      "suggested_id": "P60786",
+      "resolved_id": "O60563",
+      "outcome": "corrected"
+    }
+  ]
+}

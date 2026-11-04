@@ -142,6 +142,11 @@ def _clean_field(value, limit=400):
     return value.strip()[:limit] if isinstance(value, str) else ""
 
 
+def _clean_name(value):
+    """Models often use typographic hyphens, which would break name matching."""
+    return re.sub(r"[\u2010-\u2015\u2212]", "-", _clean_field(value))
+
+
 def parse_targets(text):
     """Parse LLM output into (targets, insights), dropping malformed entries."""
     items, remainder = _first_json_array(text)
@@ -157,7 +162,7 @@ def parse_targets(text):
         targets.append(
             {
                 "uniprot_id": accession,
-                "name": _clean_field(item.get("name")),
+                "name": _clean_name(item.get("name")),
                 "relevance": _clean_field(item.get("relevance")),
                 "drugs": _clean_field(item.get("drugs")),
             }

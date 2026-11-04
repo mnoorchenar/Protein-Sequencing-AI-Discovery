@@ -215,6 +215,32 @@ def test_exact_match_on_the_given_accession_needs_no_search(monkeypatch):
     assert uniprot.resolve_target({"uniprot_id": "P35557", "name": "Glucokinase"}) is GCK
 
 
+def test_gene_symbol_lookup_beats_a_related_protein_from_search(monkeypatch):
+    mdm2 = {"uniprot_id": "Q00987", "aliases": ["E3 ubiquitin-protein ligase Mdm2", "MDM2"]}
+    mdm4 = {"uniprot_id": "O15151", "aliases": ["Protein Mdm4", "MDM2-like p53-binding protein"]}
+    monkeypatch.setattr(uniprot, "_search_gene", lambda symbol: [mdm2] if symbol == "MDM2" else [])
+    monkeypatch.setattr(uniprot, "search", lambda name, limit=5: [mdm4])
+    assert uniprot.find_by_name("Mouse double minute 2 homolog (MDM2)") is mdm2
+
+
+def test_gene_lookup_failure_falls_back_to_search(monkeypatch):
+    def boom(query, limit):
+        raise requests.ConnectionError("down")
+
+    monkeypatch.setattr(uniprot, "_run_query", boom)
+    monkeypatch.setattr(uniprot, "search", lambda name, limit=5: [INSR])
+    assert uniprot.find_by_name("INSR") is INSR
+
+
+def test_names_without_gene_symbols_skip_the_gene_lookup(monkeypatch):
+    def fail(symbol):
+        raise AssertionError("should not look up a gene")
+
+    monkeypatch.setattr(uniprot, "_search_gene", fail)
+    monkeypatch.setattr(uniprot, "search", lambda name, limit=5: [INSR])
+    assert uniprot.find_by_name("Insulin receptor") is INSR
+
+
 def test_names_match_without_aliases_is_false():
     assert not uniprot.names_match("HER2", {})
 

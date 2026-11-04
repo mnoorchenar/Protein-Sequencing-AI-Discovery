@@ -43,6 +43,11 @@ def test_exact_name_wins_over_a_partial_match():
     assert record["gene"] == "GCK"
 
 
+def test_gene_symbol_finds_the_named_protein_not_a_relative():
+    target = {"uniprot_id": "P46527", "name": "Mouse double minute 2 homolog (MDM2)"}
+    assert uniprot.resolve_target(target)["gene"] == "MDM2"
+
+
 def test_uniprot_search_returns_human_proteins():
     results = uniprot.search("EGFR lung cancer")
     assert results
