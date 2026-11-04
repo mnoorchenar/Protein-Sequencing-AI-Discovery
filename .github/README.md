@@ -75,6 +75,7 @@ flowchart LR
 I measured how often a model's protein IDs were right, using 20 diseases and 94 suggestions from `gpt-oss-20b`.
 
 ```mermaid
+%%{init: {"themeVariables": {"pie1": "#0f766e", "pie2": "#b42318", "pie3": "#e8590c", "pie4": "#6b7280", "pieSectionTextColor": "#ffffff", "pieOuterStrokeWidth": "0px", "pieStrokeWidth": "1px"}}}%%
 pie showData
     title What the AI's protein IDs pointed to
     "The correct protein" : 19
@@ -213,7 +214,7 @@ tests/                  Test suite
       <h3><a href="https://mnoorchenar.github.io/">Mohammad Noorchenarboo</a></h3>
       Data Scientist · AI Researcher · Biostatistician<br>
       Ontario, Canada<br><br>
-      <a href="https://mnoorchenar.github.io/"><img src="https://img.shields.io/badge/Website-0f766e?style=flat-square&logo=githubpages&logoColor=white" alt="Website"/></a>
+      <a href="https://mnoorchenar.github.io/"><img src="https://img.shields.io/badge/Website-0f766e?style=flat-square" alt="Website"/></a>
       <a href="https://www.linkedin.com/in/mnoorchenar"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn"/></a>
       <a href="https://scholar.google.ca/citations?user=nn_Toq0AAAAJ&hl=en"><img src="https://img.shields.io/badge/Scholar-4285F4?style=flat-square&logo=googlescholar&logoColor=white" alt="Google Scholar"/></a>
       <a href="https://huggingface.co/mnoorchenar"><img src="https://img.shields.io/badge/Hugging_Face-ffcc00?style=flat-square&logo=huggingface&logoColor=black" alt="Hugging Face"/></a>
