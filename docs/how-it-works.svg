@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 320" role="img" aria-labelledby="title desc" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="title">How Protein Target Explorer verifies AI suggestions</title>
+  <desc id="desc">The LLM suggests targets. If an ID matches the protein's name, the result is shown with UniProt facts. If not, the app looks up the name, and shows the protein it finds or drops the suggestion. If the AI is unavailable, the app uses its curated database and then UniProt search.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1.5; }
+    .check { fill: #e0f2fe; stroke: #0284c7; stroke-width: 1.5; }
+    .text { fill: #0f172a; font-size: 16px; font-weight: 600; text-anchor: middle; }
+    .white { fill: #ffffff; font-size: 16px; font-weight: 700; text-anchor: middle; }
+    .label { fill: #475569; font-size: 14px; font-weight: 600; text-anchor: middle; paint-order: stroke; stroke: #ffffff; stroke-width: 5px; }
+    .line { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 6 5; }
+  </style>
+  <rect x="1" y="1" width="998" height="318" rx="12" fill="#ffffff" stroke="#d0d7de" stroke-width="2"/>
+
+  <path class="line" d="M136 150H170"/>
+  <path class="line" d="M292 150H330"/>
+  <path class="line" d="M470 150H802"/>
+  <path class="line" d="M400 104V62H520"/>
+  <path class="line" d="M660 62H802"/>
+  <path class="line" d="M590 108V148"/>
+  <path class="line dash" d="M231 174V255H340"/>
+  <path class="line" d="M460 238H770V165H802"/>
+  <path class="line dash" d="M460 272H590"/>
+  <path class="line" d="M710 272H880V177"/>
+
+  <text class="label" x="400" y="84">No</text>
+  <text class="label" x="630" y="155">Yes</text>
+  <text class="label" x="520" y="155">Yes</text>
+  <text class="label" x="730" y="67">No</text>
+  <text class="label" x="284" y="260">AI unavailable</text>
+  <text class="label" x="525" y="277">No match</text>
+  <text class="label" x="615" y="243">Match</text>
+
+  <rect class="box" x="24" y="122" width="112" height="56" rx="28"/>
+  <text class="text" x="80" y="146">Research</text>
+  <text class="text" x="80" y="166">question</text>
+
+  <rect class="box" x="170" y="122" width="122" height="56" rx="8"/>
+  <text class="text" x="231" y="146">LLM suggests</text>
+  <text class="text" x="231" y="166">targets</text>
+
+  <path class="check" d="M400 104 470 150 400 196 330 150z"/>
+  <text class="text" x="400" y="146">ID matches</text>
+  <text class="text" x="400" y="166">the name?</text>
+
+  <path class="check" d="M590 16 660 62 590 108 520 62z"/>
+  <text class="text" x="590" y="58">Found by</text>
+  <text class="text" x="590" y="78">name?</text>
+
+  <rect x="802" y="122" width="170" height="56" rx="28" fill="#0f766e"/>
+  <text class="white" x="887" y="146">Show with</text>
+  <text class="white" x="887" y="166">UniProt facts</text>
+
+  <rect x="802" y="38" width="170" height="48" rx="24" fill="#b42318"/>
+  <text class="white" x="887" y="68">Drop it</text>
+
+  <rect class="box" x="340" y="225" width="120" height="60" rx="8"/>
+  <text class="text" x="400" y="251">Curated</text>
+  <text class="text" x="400" y="271">database</text>
+
+  <rect class="box" x="590" y="250" width="120" height="54" rx="8"/>
+  <text class="text" x="650" y="273">UniProt</text>
+  <text class="text" x="650" y="293">search</text>
+</svg>

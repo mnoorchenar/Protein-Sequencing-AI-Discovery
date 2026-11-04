@@ -17,7 +17,7 @@
 **LLMs often give a convincing answer with the wrong protein ID.**<br>
 This app treats every suggestion as an unverified claim, and shows it only if UniProt confirms what it is.
 
-[Features](#features) · [How it works](#how-it-works) · [Results](#results) · [Decisions](#engineering-decisions) · [Get started](#getting-started) · [Author](#author)
+[![Features](https://img.shields.io/badge/Features-334155?style=flat-square)](#features) [![How it works](https://img.shields.io/badge/How_it_works-334155?style=flat-square)](#how-it-works) [![Results](https://img.shields.io/badge/Results-334155?style=flat-square)](#results) [![Decisions](https://img.shields.io/badge/Decisions-334155?style=flat-square)](#engineering-decisions) [![Get started](https://img.shields.io/badge/Get_started-334155?style=flat-square)](#getting-started) [![Author](https://img.shields.io/badge/Author-334155?style=flat-square)](#author)
 
 <img src="../docs/demo.gif" alt="Demo: searching for lung cancer targets, then exploring EGFR's 3D structure, details and AI answers" width="100%"/>
 
@@ -51,38 +51,13 @@ This app treats every suggestion as an unverified claim, and shows it only if Un
 
 ## How it works
 
-```mermaid
-flowchart LR
-    Q([Research<br>question]) --> L[LLM suggests<br>targets]
-    L --> V{ID matches<br>the name?}
-    V -- Yes --> R([Show with<br>UniProt facts])
-    V -- No --> N{Found<br>by name?}
-    N -- Yes --> R
-    N -- No --> D([Drop it])
-    L -. AI unavailable .-> C[Curated<br>database]
-    C --> R
-    C -. No match .-> U[UniProt<br>search]
-    U --> R
-
-    classDef good fill:#0f766e,stroke:#0f766e,color:#ffffff
-    classDef bad fill:#b42318,stroke:#b42318,color:#ffffff
-    class R good
-    class D bad
-```
+![Flowchart: the LLM suggests targets. If an ID matches the protein's name, the result is shown with UniProt facts. If not, the app looks up the name, and shows the protein it finds or drops the suggestion. If the AI is unavailable, the app uses its curated database and then UniProt search.](../docs/how-it-works.svg)
 
 ## Results
 
 I measured how often a model's protein IDs were right, using 20 diseases and 94 suggestions from `gpt-oss-20b`.
 
-```mermaid
-%%{init: {"themeVariables": {"pie1": "#0f766e", "pie2": "#b42318", "pie3": "#e8590c", "pie4": "#6b7280", "pieSectionTextColor": "#ffffff", "pieOuterStrokeWidth": "0px", "pieStrokeWidth": "1px"}}}%%
-pie showData
-    title What the AI's protein IDs pointed to
-    "The correct protein" : 19
-    "A different human protein" : 61
-    "A protein from another species" : 13
-    "Nothing in UniProt" : 1
-```
+![Bar chart of 94 AI-suggested protein IDs: 19 pointed to the correct protein, 61 to a different human protein, 13 to a protein from another species, and 1 to nothing in UniProt.](../docs/results.svg)
 
 **Checking that an ID exists isn't enough.** Only 1 of the 75 wrong IDs didn't exist, so a simple lookup would have missed nearly all of them. Comparing the ID with the protein's name is what catches them: the app recovered 73 by looking up the name, and dropped the other 2 rather than guess.
 
