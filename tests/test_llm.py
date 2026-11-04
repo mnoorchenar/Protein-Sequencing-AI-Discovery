@@ -149,6 +149,12 @@ class TestComplete:
             llm.complete("sys", "user")
         assert len(fake_client.calls) == 1
 
+    def test_exhausted_credits_stop_immediately_with_a_clear_message(self, fake_client):
+        fake_client.outcomes = [HttpError(402), "never reached"]
+        with pytest.raises(llm.LLMUnavailable, match="no inference credits"):
+            llm.complete("sys", "user")
+        assert len(fake_client.calls) == 1
+
     def test_user_token_takes_priority(self, fake_client):
         fake_client.outcomes = ["answer"]
         llm.complete("sys", "user", token="user-token")

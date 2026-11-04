@@ -2,8 +2,8 @@
 
 import os
 
-# Only models with a live Hugging Face inference provider belong here.
-# Check availability on each model's Hub page ("Inference Providers") when editing.
+# Only models that Hugging Face routes under default provider settings belong here.
+# A model served only by a provider the account hasn't enabled fails with a 400.
 MODELS = [
     {
         "id": "meta-llama/Llama-3.1-8B-Instruct",
@@ -16,24 +16,9 @@ MODELS = [
         "note": "Strongest reasoning, but slower.",
     },
     {
-        "id": "Qwen/Qwen2.5-7B-Instruct",
-        "label": "Qwen 2.5 7B Instruct",
-        "note": "Good at structured output.",
-    },
-    {
         "id": "google/gemma-3-27b-it",
         "label": "Gemma 3 27B",
         "note": "Large model with detailed answers.",
-    },
-    {
-        "id": "meta-llama/Llama-3.2-3B-Instruct",
-        "label": "Llama 3.2 3B Instruct",
-        "note": "Small and quick.",
-    },
-    {
-        "id": "microsoft/Phi-3-mini-4k-instruct",
-        "label": "Phi-3 Mini",
-        "note": "Smallest model, for short answers.",
     },
 ]
 MODEL_IDS = [model["id"] for model in MODELS]

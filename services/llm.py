@@ -73,6 +73,13 @@ def complete(system, user, *, model=None, token=None, max_tokens=900, temperatur
                 raise LLMAuthError(
                     "AI is unavailable: the server's Hugging Face token can't call Inference Providers."
                 ) from error
+            # Billing applies to the whole account, so other models would fail too.
+            if status == 402:
+                logger.error("Hugging Face returned 402: the account's inference credits have run out.")
+                owner = "Your" if token else "This demo's"
+                raise LLMUnavailable(
+                    f"{owner} Hugging Face account has no inference credits left."
+                ) from error
             logger.warning(
                 "Model %s failed (%s, status %s)",
                 candidate,
