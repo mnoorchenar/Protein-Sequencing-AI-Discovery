@@ -1,998 +1,883 @@
-// Global State
-let appState = {
-    currentViewer: '3dmol',
-    currentProtein: null,
-    currentPDBData: null,
-    viewerInstances: {},
-    proteins: [],
-    selectedModel: 'mistralai/Mistral-7B-Instruct-v0.3',
-    lastQuery: '',
-    deepSearchMode: false,
-    deepSearchStep: 0,
-    deepSearchContext: {}
+'use strict';
+
+// All text from the API or the LLM reaches the page through textContent (see el()).
+// Never build HTML strings here: LLM output is untrusted.
+
+const MAX_REFINE_QUESTIONS = 3;
+const VIEWER_BACKGROUND = '#0b1220';
+const NGL_SCRIPT = {
+    src: 'https://cdnjs.cloudflare.com/ajax/libs/ngl/2.3.1/ngl.js',
+    integrity: 'sha384-2IGKSrhj5s8F8y255Khep26WxVFJnBmATKZAtfHE8/bCjEpyqsPNB9bEtbo+y5+P',
+};
+const SOURCE_LABELS = {
+    ai: 'AI, verified in UniProt',
+    curated: 'Curated',
+    uniprot: 'UniProt match',
+};
+const RESULT_INTROS = {
+    ai: 'Each AI suggestion was matched to a human UniProt entry by accession and name. The relevance and drug notes are AI-written, so verify them.',
+    curated: "The AI didn't return usable results, so these come from the curated database.",
+    uniprot: 'These are keyword matches from UniProt, so check that they fit your question.',
+};
+const QA_SECTIONS = {
+    KEY: 'Key point',
+    MECHANISM: 'Mechanism',
+    CLINICAL: 'Clinical',
+    WARNING: 'Caution',
+    TIP: 'Tip',
+};
+const SUGGESTED_QUESTIONS = [
+    'Why is this a drug target?',
+    'What is its mechanism of action?',
+    'Which diseases is it linked to?',
+];
+
+const state = {
+    query: '',
+    protein: null,
+    structure: null,
+    bestPdb: null,
+    activeTab: '3dmol',
+    loadId: 0,
+    refine: null,
+    viewers: {
+        '3dmol': { instance: null, key: null, style: 'cartoon', color: 'spectrum' },
+        ngl: { stage: null, component: null, key: null, style: 'cartoon' },
+    },
 };
 
-const modelDescriptions = {
-    'mistralai/Mistral-7B-Instruct-v0.3': 'Balanced quality & speed',
-    'mistralai/Mistral-7B-Instruct-v0.2': 'Previous Mistral version',
-    'mistralai/Mixtral-8x7B-Instruct-v0.1': 'Best quality, slower response',
-    'meta-llama/Meta-Llama-3-8B-Instruct': 'Latest Llama, excellent reasoning',
-    'meta-llama/Llama-2-7b-chat-hf': 'Good general purpose',
-    'meta-llama/Llama-2-13b-chat-hf': 'Larger model, better quality',
-    'microsoft/BioGPT-Large': 'Specialized for biology & medicine',
-    'HuggingFaceH4/zephyr-7b-beta': 'High quality open model',
-    'tiiuae/falcon-7b-instruct': 'Fast and efficient',
-    'google/flan-t5-xxl': 'Good for structured tasks',
-    'microsoft/phi-2': 'Small, fast, efficient'
-};
+const byId = (id) => document.getElementById(id);
 
-// Tab Switching
-function switchTab(tabName) {
-    document.querySelectorAll('.viewer-tab').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-    
-    document.querySelector('[data-tab="' + tabName + '"]').classList.add('active');
-    document.getElementById('tab-' + tabName).classList.add('active');
-    
-    appState.currentViewer = tabName;
-    
-    if (appState.currentPDBData && ['3dmol', 'ngl', 'simple'].includes(tabName)) {
-        displayProteinStructure(appState.currentPDBData);
+// DOM helpers
+
+function el(tag, props, ...children) {
+    const node = document.createElement(tag);
+    Object.entries(props || {}).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+        else if (key === 'class') node.className = value;
+        else if (key in node && key !== 'list') node[key] = value;
+        else node.setAttribute(key, value);
+    });
+    node.append(...children.filter((child) => child !== null && child !== undefined));
+    return node;
+}
+
+// Unlike replaceChildren alone, this skips null, which would otherwise show as the text "null".
+function setChildren(node, ...children) {
+    node.replaceChildren(...children.filter((child) => child !== null && child !== undefined));
+}
+
+function externalLink(label, href) {
+    return el('a', { href, target: '_blank', rel: 'noopener noreferrer' }, label);
+}
+
+function scrollToEnd(node) {
+    node.scrollTop = node.scrollHeight;
+}
+
+// API
+
+async function postJSON(url, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = byId('hf-token-input').value.trim();
+    if (token) headers['X-HF-Token'] = token;
+
+    let response;
+    try {
+        response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    } catch (error) {
+        throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+
+    let data = null;
+    try {
+        data = await response.json();
+    } catch (error) {
+        // Handled below: a proxy error page isn't JSON.
+    }
+    if (!response.ok || !data) {
+        throw new Error((data && data.error) || `The server returned an error (${response.status}).`);
+    }
+    return data;
+}
+
+function selectedModel() {
+    return byId('model-select').value;
+}
+
+// Chat
+
+function addMessage(role, ...content) {
+    const log = byId('chat-messages');
+    const welcome = log.querySelector('.welcome');
+    if (welcome) welcome.remove();
+    const message = el('div', { class: `message ${role}` }, ...content);
+    log.append(message);
+    scrollToEnd(log);
+    return message;
+}
+
+function addPending(label) {
+    return addMessage('assistant', el('div', { class: 'pending' }, el('span', { class: 'dots', 'aria-hidden': 'true' }), label));
+}
+
+function setSearchBusy(busy, label) {
+    const button = byId('send-btn');
+    button.disabled = busy;
+    button.textContent = busy ? label : 'Find targets';
+}
+
+async function runSearch(query) {
+    state.query = query;
+    state.refine = null;
+    addMessage('user', query);
+    setSearchBusy(true, 'Searching');
+    const pending = addPending('Finding targets and checking them in UniProt');
+
+    try {
+        const data = await postJSON('/api/analyze', { prompt: query, model: selectedModel() });
+        pending.remove();
+        renderResults(data, true);
+    } catch (error) {
+        pending.remove();
+        addMessage('assistant error', error.message);
+    } finally {
+        setSearchBusy(false);
     }
 }
 
-// Send Message
-function sendMessage() {
-    const input = document.getElementById('chat-input');
-    const message = input.value.trim();
-    
-    if (!message) return;
-    
-    appState.lastQuery = message;
-    addMessage('user', message);
-    input.value = '';
-    
-    const sendBtn = document.getElementById('send-btn');
-    sendBtn.disabled = true;
-    sendBtn.textContent = '🔬 Analyzing...';
-    
-    fetch('/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            prompt: message,
-            hf_token: '',
-            model: appState.selectedModel
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            addMessage('assistant', 'Error: ' + data.error);
-        } else if (data.no_results) {
-            displayNoResults(appState.lastQuery);
-        } else if (data.proteins && data.proteins.length > 0) {
-            appState.proteins = data.proteins;
-            displayProteinResults(data.proteins);
-        } else {
-            displayNoResults(appState.lastQuery);
-        }
-    })
-    .catch(error => {
-        addMessage('assistant', 'Error: ' + error.message);
-    })
-    .finally(() => {
-        sendBtn.disabled = false;
-        sendBtn.textContent = '🔬 Discover Proteins';
-    });
+function proteinCard(protein) {
+    const card = el(
+        'button',
+        {
+            class: 'protein-card',
+            type: 'button',
+            'data-accession': protein.uniprot_id,
+            onclick: () => loadProtein(protein),
+        },
+        el('span', { class: 'card-title' }, protein.name || 'Unknown protein'),
+        el(
+            'span',
+            { class: 'card-meta' },
+            [protein.gene, protein.uniprot_id, protein.length ? `${protein.length} aa` : null].filter(Boolean).join(' · ')
+        ),
+        protein.relevance ? el('span', { class: 'card-relevance' }, protein.relevance) : null,
+        el('span', { class: `badge badge-${protein.source}` }, SOURCE_LABELS[protein.source] || 'Result')
+    );
+    if (state.protein && state.protein.uniprot_id === protein.uniprot_id) card.classList.add('selected');
+    return card;
 }
 
-// Add Message
-function addMessage(role, content) {
-    const messagesDiv = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message ' + role;
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.textContent = content;
-    
-    messageDiv.appendChild(contentDiv);
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-// Display Protein Results
-function displayProteinResults(proteins) {
-    const messagesDiv = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message assistant';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    
-    if (!proteins || proteins.length === 0) {
-        contentDiv.innerHTML = '<strong>No proteins found.</strong>';
-        messageDiv.appendChild(contentDiv);
-        messagesDiv.appendChild(messageDiv);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+function renderResults(data, offerRefine) {
+    const proteins = data.proteins || [];
+    if (!proteins.length) {
+        addMessage('assistant', "No human proteins matched that search. Try a specific disease or protein name.");
         return;
     }
-    
-    const resultText = appState.deepSearchMode ? 
-        'Based on your answers, here are the most relevant proteins:' :
-        'Found ' + proteins.length + ' proteins. Click for details:';
-    
-    contentDiv.innerHTML = '<strong>' + resultText + '</strong>';
-    
-    const boxesDiv = document.createElement('div');
-    boxesDiv.className = 'protein-boxes';
-    
-    proteins.forEach(function(protein, idx) {
-        const box = document.createElement('div');
-        box.className = 'protein-box';
-        box.innerHTML = '<strong>' + (idx + 1) + '. ' + (protein.name || 'Unknown Protein') + '</strong><small>ID: ' + (protein.uniprot_id || 'N/A') + '</small>';
-        box.onclick = function() { loadProtein(protein); };
-        boxesDiv.appendChild(box);
-    });
-    
-    contentDiv.appendChild(boxesDiv);
-    
-    if (!appState.deepSearchMode) {
-        const deepSearchBtn = document.createElement('button');
-        deepSearchBtn.className = 'deep-search-btn';
-        deepSearchBtn.textContent = '💬 Want Better Results? Try Deep Search';
-        deepSearchBtn.style.marginTop = '15px';
-        deepSearchBtn.onclick = function() { startDeepSearch(); };
-        contentDiv.appendChild(deepSearchBtn);
+
+    addMessage(
+        'assistant',
+        el('p', { class: 'result-intro' }, RESULT_INTROS[data.source] || ''),
+        data.insights ? el('p', { class: 'insights' }, data.insights) : null,
+        el('div', { class: 'protein-cards' }, ...proteins.map(proteinCard)),
+        offerRefine
+            ? el('button', { class: 'btn btn-quiet refine-start', type: 'button', onclick: (event) => startRefine(event.target) }, 'Narrow these results')
+            : null
+    );
+}
+
+// Guided refinement
+
+function startRefine(button) {
+    button.remove();
+    state.refine = { query: state.query, answers: [], asked: 0 };
+    askRefineQuestion();
+}
+
+async function askRefineQuestion() {
+    const refine = state.refine;
+    if (!refine) return;
+    if (refine.asked >= MAX_REFINE_QUESTIONS) {
+        finishRefine();
+        return;
     }
-    
-    messageDiv.appendChild(contentDiv);
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    
-    appState.deepSearchMode = false;
-    appState.deepSearchStep = 0;
-}
 
-// Display No Results
-function displayNoResults(query) {
-    const messagesDiv = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message assistant';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.innerHTML = '<strong>🔍 Searching UniProt database...</strong>';
-    
-    messageDiv.appendChild(contentDiv);
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    
-    // Automatically trigger deep search
-    deepSearch(query);
-}
-
-// Deep Search (UniProt)
-function deepSearch(query) {
-    const buttons = document.querySelectorAll('.deep-search-btn');
-    buttons.forEach(btn => {
-        btn.disabled = true;
-        btn.textContent = '🔍 Searching UniProt...';
-    });
-    
-    fetch('/deep_search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            addMessage('assistant', 'Deep Search Error: ' + data.error);
-        } else if (data.proteins && data.proteins.length > 0) {
-            appState.proteins = data.proteins;
-            displayProteinResults(data.proteins);
-        } else {
-            addMessage('assistant', 'No proteins found in UniProt database for this query. Try rephrasing your search.');
-        }
-    })
-    .catch(error => {
-        addMessage('assistant', 'Deep Search Error: ' + error.message);
-    })
-    .finally(() => {
-        buttons.forEach(btn => {
-            btn.disabled = false;
-            btn.textContent = '🔍 Deep Search';
+    const pending = addPending('Thinking of a question');
+    try {
+        const data = await postJSON('/api/refine/question', {
+            original_query: refine.query,
+            answers: refine.answers,
+            model: selectedModel(),
         });
-    });
-}
-
-// Start Deep Search Conversation
-function startDeepSearch() {
-    appState.deepSearchMode = true;
-    appState.deepSearchStep = 1;
-    appState.deepSearchContext = {
-        originalQuery: appState.lastQuery,
-        answers: []
-    };
-    
-    const messagesDiv = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message assistant';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    
-    const deepBox = document.createElement('div');
-    deepBox.className = 'deep-search-mode';
-    
-    const modeText = document.createElement('p');
-    modeText.textContent = '🔍 Deep Search Mode Activated';
-    deepBox.appendChild(modeText);
-    
-    const infoText = document.createElement('p');
-    infoText.textContent = 'I will ask you a few questions to find the perfect proteins...';
-    infoText.style.fontWeight = 'normal';
-    infoText.style.fontSize = '0.85em';
-    deepBox.appendChild(infoText);
-    
-    contentDiv.appendChild(deepBox);
-    messageDiv.appendChild(contentDiv);
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    
-    askDeepSearchQuestion();
-}
-
-// Ask Deep Search Question
-function askDeepSearchQuestion() {
-    const sendBtn = document.getElementById('send-btn');
-    sendBtn.disabled = true;
-    sendBtn.textContent = '🤔 Thinking...';
-    
-    const context = appState.deepSearchContext;
-    const conversationHistory = context.answers.map(function(a) {
-        return 'Q: ' + a.question + '\nA: ' + a.answer;
-    }).join('\n\n');
-    
-    // After collecting answers (max 5 questions), generate search query from LLM
-    if (appState.deepSearchStep > 5) {
-        // Generate refined search query based on conversation
-        generateSearchQueryFromConversation();
-        return;
+        pending.remove();
+        if (state.refine !== refine) return;
+        refine.asked += 1;
+        renderRefineQuestion(data.question);
+    } catch (error) {
+        pending.remove();
+        addMessage('assistant error', error.message);
+        state.refine = null;
     }
-    
-    // Ask clarifying questions (steps 1-5)
-    const prompt = 'You are helping refine a protein search. Original query: "' + context.originalQuery + '"\n\n' +
-        'Previous conversation:\n' + (conversationHistory || 'None yet') + '\n\n' +
-        'Current step: ' + appState.deepSearchStep + ' of 5\n\n' +
-        'Task: Ask ONE specific clarifying question to narrow down the protein search. ' +
-        'Make it relevant to the disease, mechanism, pathway, or specific protein characteristics. ' +
-        'Be concise and specific. Examples:\n' +
-        '- "Are you interested in proteins involved in apoptosis or cell proliferation?"\n' +
-        '- "Do you want to focus on receptor proteins or signaling molecules?"\n' +
-        '- "Are you looking for therapeutic targets or biomarkers?"\n\n' +
-        'Respond with ONLY the question, nothing else.';
-    
-    fetch('/chat_question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            prompt: prompt,
-            model: appState.selectedModel
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.response) {
-            displayDeepSearchQuestion(data.response);
-        } else {
-            addMessage('assistant', 'Error in deep search. Showing quick results instead.');
-            appState.deepSearchMode = false;
-        }
-    })
-    .catch(error => {
-        addMessage('assistant', 'Error: ' + error.message);
-        appState.deepSearchMode = false;
-    })
-    .finally(() => {
-        sendBtn.disabled = false;
-        sendBtn.textContent = '🔬 Discover Proteins';
-    });
 }
 
-// Generate Search Query from Conversation
-function generateSearchQueryFromConversation() {
-    const context = appState.deepSearchContext;
-    const conversationHistory = context.answers.map(function(a) {
-        return 'Q: ' + a.question + '\nA: ' + a.answer;
-    }).join('\n\n');
-    
-    const prompt = 'You are a biomedical search expert. Analyze this conversation and extract the best UniProt search keywords.\n\n' +
-        'Original query: "' + context.originalQuery + '"\n\n' +
-        'Conversation:\n' + conversationHistory + '\n\n' +
-        'CRITICAL TASK: Extract the core scientific concepts from the user\'s answers and create a precise search query.\n' +
-        'Rules:\n' +
-        '1. Ignore conversational words like "yes", "no", "I want", "please", etc.\n' +
-        '2. Extract only scientific terms: diseases, proteins, pathways, mechanisms\n' +
-        '3. Combine original query context with user preferences\n' +
-        '4. Use 4-7 precise biomedical keywords\n' +
-        '5. Use terms that UniProt database will understand\n\n' +
-        'Examples of GOOD queries:\n' +
-        '- "breast cancer metastasis EMT epithelial mesenchymal"\n' +
-        '- "Alzheimer disease amyloid beta tau phosphorylation"\n' +
-        '- "diabetes type 2 insulin resistance GLUT4"\n' +
-        '- "lung cancer EGFR tyrosine kinase mutation"\n\n' +
-        'Examples of BAD queries (never do this):\n' +
-        '- "yes metastasis proteins please" ❌\n' +
-        '- "I want apoptosis related" ❌\n' +
-        '- "give me cancer targets" ❌\n\n' +
-        'Respond ONLY with: "SEARCH_READY: [keywords]"\n' +
-        'Example: "SEARCH_READY: breast cancer HER2 receptor tyrosine kinase metastasis"';
-    
-    fetch('/chat_question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            prompt: prompt,
-            model: appState.selectedModel
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.response && data.response.includes('SEARCH_READY:')) {
-            const searchTerms = data.response.replace('SEARCH_READY:', '').trim();
-            // Clean up any remaining conversational words
-            const cleanedTerms = searchTerms.replace(/\b(yes|no|please|I want|give me|show me)\b/gi, '').trim();
-            performRefinedSearch(cleanedTerms);
-        } else {
-            // Fallback: use original query
-            performRefinedSearch(context.originalQuery);
-        }
-    })
-    .catch(error => {
-        performRefinedSearch(context.originalQuery);
-    });
-}
+function renderRefineQuestion(question) {
+    const input = el('input', { type: 'text', placeholder: 'Your answer', maxLength: 300, 'aria-label': question });
+    const skip = el('button', { class: 'btn btn-quiet', type: 'button' }, 'Skip');
+    const show = el('button', { class: 'btn btn-quiet', type: 'button' }, 'Show results');
+    const submit = el('button', { class: 'btn btn-primary', type: 'submit' }, 'Answer');
+    const form = el('form', { class: 'refine-form' }, input, el('div', { class: 'button-row' }, submit, skip, show));
 
-// Display Deep Search Question
-function displayDeepSearchQuestion(question) {
-    const messagesDiv = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message assistant';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.innerHTML = '<strong>' + question + '</strong>';
-    
-    const inputArea = document.createElement('div');
-    inputArea.className = 'question-input-area';
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Your answer...';
-    input.id = 'deep-search-answer';
-    input.style.marginBottom = '10px';
-    input.style.width = '100%';
-    inputArea.appendChild(input);
-    
-    // First button row - Submit and Skip
-    const firstButtonRow = document.createElement('div');
-    firstButtonRow.style.display = 'flex';
-    firstButtonRow.style.gap = '10px';
-    firstButtonRow.style.alignItems = 'stretch';
-    firstButtonRow.style.width = '100%';
-    firstButtonRow.style.marginBottom = '10px';
-    
-    const submitBtn = document.createElement('button');
-    submitBtn.textContent = 'Submit Answer';
-    submitBtn.style.flex = '1';
-    submitBtn.style.padding = '10px 15px';
-    submitBtn.style.borderRadius = '5px';
-    submitBtn.style.cursor = 'pointer';
-    submitBtn.onclick = function() { submitDeepSearchAnswer(question, input.value); };
-    firstButtonRow.appendChild(submitBtn);
-    
-    const skipBtn = document.createElement('button');
-    skipBtn.textContent = '⏭️ Skip';
-    skipBtn.className = 'skip-question-btn';
-    skipBtn.style.background = '#ff9800';
-    skipBtn.style.color = 'white';
-    skipBtn.style.border = 'none';
-    skipBtn.style.padding = '10px 15px';
-    skipBtn.style.borderRadius = '5px';
-    skipBtn.style.cursor = 'pointer';
-    skipBtn.style.flex = '1';
-    skipBtn.style.whiteSpace = 'nowrap';
-    skipBtn.onclick = function() {
-        addMessage('user', '[Question skipped]');
-        appState.deepSearchStep++;
-        askDeepSearchQuestion();
-    };
-    firstButtonRow.appendChild(skipBtn);
-    
-    inputArea.appendChild(firstButtonRow);
-    
-    // Second button row - Show Results
-    const secondButtonRow = document.createElement('div');
-    secondButtonRow.style.display = 'flex';
-    secondButtonRow.style.width = '100%';
-    
-    const showResultsBtn = document.createElement('button');
-    showResultsBtn.textContent = '📊 Show Results';
-    showResultsBtn.className = 'show-results-btn';
-    showResultsBtn.style.background = '#4caf50';
-    showResultsBtn.style.color = 'white';
-    showResultsBtn.style.border = 'none';
-    showResultsBtn.style.padding = '10px 15px';
-    showResultsBtn.style.borderRadius = '5px';
-    showResultsBtn.style.cursor = 'pointer';
-    showResultsBtn.style.width = '100%';
-    showResultsBtn.onclick = function() {
-        skipToSearch();
-    };
-    secondButtonRow.appendChild(showResultsBtn);
-    
-    inputArea.appendChild(secondButtonRow);
-    contentDiv.appendChild(inputArea);
-    messageDiv.appendChild(contentDiv);
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    
+    const retire = () => form.remove();
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const answer = input.value.trim();
+        if (!answer) return;
+        retire();
+        addMessage('user', answer);
+        state.refine.answers.push({ question, answer });
+        askRefineQuestion();
+    });
+    skip.addEventListener('click', () => {
+        retire();
+        addMessage('user muted', 'Skipped');
+        askRefineQuestion();
+    });
+    show.addEventListener('click', () => {
+        retire();
+        finishRefine();
+    });
+
+    addMessage('assistant', el('p', {}, question), form);
     input.focus();
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            submitDeepSearchAnswer(question, input.value);
+}
+
+async function finishRefine() {
+    const refine = state.refine;
+    state.refine = null;
+    const pending = addPending('Searching UniProt with your answers');
+    try {
+        const { keywords } = await postJSON('/api/refine/keywords', {
+            original_query: refine.query,
+            answers: refine.answers,
+            model: selectedModel(),
+        });
+        const data = await postJSON('/api/deep_search', { query: keywords });
+        pending.remove();
+        addMessage('assistant muted', `Search terms: ${keywords}`);
+        renderResults(data, false);
+    } catch (error) {
+        pending.remove();
+        addMessage('assistant error', error.message);
+    }
+}
+
+// Protein loading
+
+function markSelectedCards(accession) {
+    document.querySelectorAll('.protein-card').forEach((card) => {
+        card.classList.toggle('selected', card.dataset.accession === accession);
+    });
+}
+
+function setStageMessage(title, text, isError) {
+    ['3dmol', 'ngl'].forEach((name) => {
+        const box = byId(`message-${name}`);
+        if (!title) {
+            box.hidden = true;
+            return;
         }
+        box.hidden = false;
+        box.classList.toggle('error', Boolean(isError));
+        box.replaceChildren(el('h3', {}, title), text ? el('p', {}, text) : '');
     });
 }
 
-// Submit Deep Search Answer
-function submitDeepSearchAnswer(question, answer) {
-    if (!answer.trim()) return;
-    
-    addMessage('user', answer);
-    
-    appState.deepSearchContext.answers.push({
-        question: question,
-        answer: answer
-    });
-    
-    appState.deepSearchStep++;
-    
-    // Always continue to next question until we get SEARCH_READY response
-    askDeepSearchQuestion();
+function clearViewers() {
+    const mol = state.viewers['3dmol'];
+    if (mol.instance) mol.instance.clear();
+    mol.key = null;
+
+    const ngl = state.viewers.ngl;
+    if (ngl.stage) ngl.stage.removeAllComponents();
+    ngl.component = null;
+    ngl.key = null;
+
+    byId('plddt-legend').hidden = true;
+    byId('controls-3dmol').hidden = true;
+    byId('controls-ngl').hidden = true;
 }
 
-// Skip to Search
-function skipToSearch() {
-    addMessage('assistant', '⏭️ Generating search query based on current information...');
-    
-    const context = appState.deepSearchContext;
-    
-    // If no answers yet, use original query
-    if (context.answers.length === 0) {
-        performRefinedSearch(context.originalQuery);
+async function loadProtein(protein, source) {
+    const loadId = ++state.loadId;
+    const isNewProtein = !state.protein || state.protein.uniprot_id !== protein.uniprot_id;
+
+    state.protein = protein;
+    state.structure = null;
+    markSelectedCards(protein.uniprot_id);
+    renderProteinBar(protein);
+    if (isNewProtein) resetQA(protein);
+    renderDetails(protein);
+
+    clearViewers();
+    setStageMessage('Loading structure', null);
+    if (state.activeTab === 'info' || state.activeTab === 'ask') switchTab('3dmol');
+    // The panels are stacked on small screens, so the viewer may be offscreen.
+    if (window.matchMedia('(max-width: 900px)').matches) {
+        document.querySelector('.viewer-panel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    try {
+        const data = await postJSON('/api/structure', { uniprot_id: protein.uniprot_id, source });
+        if (loadId !== state.loadId) return;
+
+        const merged = {
+            ...data.protein,
+            relevance: protein.relevance,
+            drugs: protein.drugs,
+            source: protein.source,
+        };
+        state.protein = merged;
+        state.structure = data.structure;
+        state.bestPdb = data.best_pdb;
+        renderProteinBar(merged);
+        renderDetails(merged);
+
+        if (!data.structure) {
+            setStageMessage('No 3D structure available', "AlphaFold DB and RCSB PDB don't have a usable model for this protein.");
+            return;
+        }
+        setStageMessage(null);
+        renderActiveViewer();
+    } catch (error) {
+        if (loadId !== state.loadId) return;
+        setStageMessage('Could not load the structure', error.message, true);
+    }
+}
+
+function renderProteinBar(protein) {
+    byId('protein-bar').hidden = false;
+    byId('protein-title').textContent = protein.name || 'Unknown protein';
+    const structureLabel = state.structure ? state.structure.label : null;
+    byId('protein-subtitle').textContent = [protein.gene, protein.uniprot_id, structureLabel].filter(Boolean).join(' · ');
+
+    const toggle = byId('source-switch');
+    const bothSources = Boolean(state.structure && state.bestPdb);
+    toggle.hidden = !bothSources;
+    if (!bothSources) return;
+    byId('pdb-source-btn').textContent = `PDB ${state.bestPdb.id}`;
+    toggle.querySelectorAll('.segment').forEach((button) => {
+        const active = button.dataset.source === state.structure.source;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+}
+
+// Tabs
+
+function switchTab(name) {
+    state.activeTab = name;
+    document.querySelectorAll('.tab').forEach((tab) => {
+        const selected = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll('.tab-pane').forEach((pane) => {
+        pane.classList.toggle('active', pane.id === `tab-${name}`);
+    });
+    renderActiveViewer();
+}
+
+function renderActiveViewer() {
+    if (state.activeTab === '3dmol') render3Dmol();
+    else if (state.activeTab === 'ngl') renderNGL();
+}
+
+function structureKey() {
+    return state.structure && state.protein ? `${state.protein.uniprot_id}:${state.structure.source}` : null;
+}
+
+function downloadStructure() {
+    if (!state.structure) return;
+    const blob = new Blob([state.structure.pdb_data], { type: 'chemical/x-pdb' });
+    const url = URL.createObjectURL(blob);
+    const link = el('a', { href: url, download: `${state.protein.uniprot_id}_${state.structure.source}.pdb` });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function toolbarGroup(label, options, current, onSelect) {
+    return el(
+        'div',
+        { class: 'tool-group', role: 'group', 'aria-label': label },
+        el('span', { class: 'tool-label' }, label),
+        ...options.map(([value, text]) => {
+            const active = value === current;
+            return el(
+                'button',
+                {
+                    class: `segment${active ? ' active' : ''}`,
+                    type: 'button',
+                    'aria-pressed': String(active),
+                    onclick: () => onSelect(value),
+                },
+                text
+            );
+        })
+    );
+}
+
+// 3Dmol viewer
+
+function plddtColor(atom) {
+    if (atom.b >= 90) return '#0053d6';
+    if (atom.b >= 70) return '#65cbf3';
+    if (atom.b >= 50) return '#ffdb13';
+    return '#ff7d45';
+}
+
+function apply3DmolStyle() {
+    const view = state.viewers['3dmol'];
+    const viewer = view.instance;
+    const useConfidence = view.color === 'confidence';
+    const color = useConfidence ? { colorfunc: plddtColor } : { color: 'spectrum' };
+
+    viewer.removeAllSurfaces();
+    if (view.style === 'sticks') {
+        viewer.setStyle({}, { stick: useConfidence ? { colorfunc: plddtColor, radius: 0.2 } : { colorscheme: 'Jmol', radius: 0.2 } });
+    } else if (view.style === 'spheres') {
+        viewer.setStyle({}, { sphere: useConfidence ? { colorfunc: plddtColor } : { colorscheme: 'Jmol' } });
+    } else {
+        viewer.setStyle({}, { cartoon: color });
+    }
+    if (view.style === 'surface') {
+        viewer.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.55, color: '#e2e8f0' });
+    }
+    viewer.render();
+
+    const legend = byId('plddt-legend');
+    legend.hidden = !useConfidence;
+    if (useConfidence && state.structure.mean_plddt) {
+        byId('plddt-mean').textContent = `Mean ${state.structure.mean_plddt.toFixed(1)}`;
+    }
+}
+
+function render3DmolControls() {
+    const view = state.viewers['3dmol'];
+    const isPrediction = state.structure.source === 'alphafold';
+    const rerender = (key) => (value) => {
+        view[key] = value;
+        apply3DmolStyle();
+        render3DmolControls();
+    };
+
+    const bar = byId('controls-3dmol');
+    bar.hidden = false;
+    setChildren(
+        bar,
+        toolbarGroup(
+            'Style',
+            [['cartoon', 'Cartoon'], ['surface', 'Surface'], ['sticks', 'Sticks'], ['spheres', 'Spheres']],
+            view.style,
+            rerender('style')
+        ),
+        isPrediction
+            ? toolbarGroup('Color', [['confidence', 'Confidence'], ['spectrum', 'Rainbow']], view.color, rerender('color'))
+            : null,
+        el(
+            'div',
+            { class: 'tool-group tool-actions' },
+            el('button', { class: 'btn btn-quiet', type: 'button', onclick: () => { view.instance.zoomTo(); view.instance.render(); } }, 'Reset view'),
+            el('button', { class: 'btn btn-quiet', type: 'button', onclick: downloadStructure }, 'Download PDB')
+        )
+    );
+}
+
+function render3Dmol() {
+    const view = state.viewers['3dmol'];
+    const key = structureKey();
+    if (!key || typeof $3Dmol === 'undefined') {
+        if (key) setStageMessage('The 3D viewer could not load', 'Check your connection, then reload the page.', true);
         return;
     }
-    
-    const conversationHistory = context.answers.map(function(a) {
-        return 'Q: ' + a.question + '\nA: ' + a.answer;
-    }).join('\n\n');
-    
-    const prompt = 'Based on this conversation, generate a refined UniProt search query.\n\n' +
-        'Original query: "' + context.originalQuery + '"\n' +
-        'Conversation:\n' + conversationHistory + '\n\n' +
-        'Respond ONLY with: "SEARCH_READY: [keywords]" ' +
-        'where keywords are 3-6 precise biomedical terms. ' +
-        'Examples: "SEARCH_READY: breast cancer HER2 receptor", ' +
-        '"SEARCH_READY: Alzheimer amyloid beta protein". ' +
-        'Use only scientific keywords, no conversational words.';
-    
-    fetch('/chat_question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            prompt: prompt,
-            model: appState.selectedModel
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.response && data.response.startsWith('SEARCH_READY:')) {
-            const searchTerms = data.response.replace('SEARCH_READY:', '').trim();
-            performRefinedSearch(searchTerms);
-        } else {
-            // Fallback: use original query + answers
-            const allText = context.originalQuery + ' ' + context.answers.map(a => a.answer).join(' ');
-            performRefinedSearch(allText);
-        }
-    })
-    .catch(error => {
-        addMessage('assistant', 'Error: ' + error.message);
-        appState.deepSearchMode = false;
-    });
-}
 
-// Perform Refined Search
-function performRefinedSearch(searchTerms) {
-    addMessage('assistant', '🔍 Searching with refined criteria: "' + searchTerms + '"');
-    
-    fetch('/deep_search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchTerms })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.proteins && data.proteins.length > 0) {
-            appState.proteins = data.proteins.slice(0, 5);
-            displayProteinResults(appState.proteins);
-        } else {
-            addMessage('assistant', 'No specific matches found. Try rephrasing or use quick search.');
-            appState.deepSearchMode = false;
-        }
-    })
-    .catch(error => {
-        addMessage('assistant', 'Search error: ' + error.message);
-        appState.deepSearchMode = false;
-    });
-}
-
-// Load Protein
-function loadProtein(protein) {
-    appState.currentProtein = protein;
-    
-    document.getElementById('qa-messages').innerHTML = '<div class="welcome-message"><h3>💬 Ask Questions About ' + (protein.name || 'This Protein') + '</h3><p>I can explain mechanisms, clinical relevance, structure features, and more!</p></div>';
-    document.getElementById('qa-input').disabled = false;
-    document.getElementById('qa-send-btn').disabled = false;
-    
-    const viewer = document.getElementById('protein-viewer');
-    viewer.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading structure...</p></div>';
-    
-    fetch('/get_structure', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uniprot_id: protein.uniprot_id })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            viewer.innerHTML = '<div class="loading"><p style="color: #f44336;">' + data.error + '</p></div>';
-        } else {
-            appState.currentPDBData = data;
-            displayProteinStructure(data);
-            displayProteinInfo(protein, data);
-            initializeControls();
-        }
-    })
-    .catch(error => {
-        viewer.innerHTML = '<div class="loading"><p style="color: #f44336;">Error: ' + error.message + '</p></div>';
-    });
-}
-
-// Display Protein Structure
-function displayProteinStructure(data) {
-    if (appState.currentViewer === '3dmol') {
-        init3DmolViewer(data.pdb_data);
-    } else if (appState.currentViewer === 'ngl') {
-        initNGLViewer(data.pdb_data);
-    } else if (appState.currentViewer === 'simple') {
-        initSimpleViewer(data.pdb_data);
+    if (!view.instance) {
+        view.instance = $3Dmol.createViewer(byId('viewer-3dmol'), { backgroundColor: VIEWER_BACKGROUND, antialias: true });
     }
-}
-
-// 3Dmol Viewer
-function init3DmolViewer(pdbData) {
-    const container = document.getElementById('protein-viewer');
-    container.innerHTML = '';
-    
-    const config = { backgroundColor: 'black' };
-    const viewer = $3Dmol.createViewer(container, config);
-    
-    viewer.addModel(pdbData, 'pdb');
-    viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
-    viewer.zoomTo();
-    viewer.render();
-    viewer.zoom(0.8, 1000);
-    
-    appState.viewerInstances['3dmol'] = viewer;
-}
-
-// NGL Viewer
-function initNGLViewer(pdbData) {
-    const container = document.getElementById('protein-viewer-ngl');
-    container.innerHTML = '';
-    
-    const stage = new NGL.Stage(container, { backgroundColor: 'black' });
-    
-    const blob = new Blob([pdbData], { type: 'text/plain' });
-    stage.loadFile(blob, { ext: 'pdb' }).then(function(component) {
-        component.addRepresentation('cartoon', { color: 'chainname' });
-        component.autoView();
-        appState.viewerInstances['ngl'] = { stage: stage, component: component };
-    });
-}
-
-// Simple Viewer (Three.js)
-function initSimpleViewer(pdbData) {
-    const container = document.getElementById('protein-viewer-simple');
-    container.innerHTML = '';
-    
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
-    
-    const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-    camera.position.z = 50;
-    
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    container.appendChild(renderer.domElement);
-    
-    const atoms = parsePDB(pdbData);
-    const protein = createProteinMesh(atoms);
-    scene.add(protein);
-    
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-    
-    appState.viewerInstances['simple'] = { scene: scene, camera: camera, renderer: renderer, protein: protein, autoRotate: true };
-    
-    function animate() {
-        requestAnimationFrame(animate);
-        if (appState.viewerInstances['simple'].autoRotate) {
-            protein.rotation.y += 0.005;
-            protein.rotation.x += 0.002;
-        }
-        renderer.render(scene, camera);
+    if (view.key === key) {
+        view.instance.resize();
+        view.instance.render();
+        return;
     }
-    animate();
+
+    view.key = key;
+    view.style = 'cartoon';
+    view.color = state.structure.source === 'alphafold' ? 'confidence' : 'spectrum';
+    view.instance.clear();
+    view.instance.addModel(state.structure.pdb_data, 'pdb');
+    view.instance.resize();
+    apply3DmolStyle();
+    view.instance.zoomTo();
+    view.instance.render();
+    render3DmolControls();
 }
 
-function parsePDB(pdbData) {
-    const atoms = [];
-    const lines = pdbData.split('\n');
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.startsWith('ATOM')) {
-            const x = parseFloat(line.substring(30, 38));
-            const y = parseFloat(line.substring(38, 46));
-            const z = parseFloat(line.substring(46, 54));
-            const element = line.substring(76, 78).trim();
-            
-            if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
-                atoms.push({ x: x, y: y, z: z, element: element });
-            }
-        }
-    }
-    return atoms;
-}
+// NGL viewer, loaded the first time its tab opens because the library is 1.3 MB
 
-function createProteinMesh(atoms) {
-    const group = new THREE.Group();
-    
-    if (atoms.length === 0) {
-        const geometry = new THREE.TorusKnotGeometry(10, 3, 100, 16);
-        const material = new THREE.MeshPhongMaterial({ color: 0x667eea });
-        return new THREE.Mesh(geometry, material);
-    }
-    
-    const geometry = new THREE.SphereGeometry(0.5, 8, 8);
-    const sampleRate = Math.max(1, Math.floor(atoms.length / 1000));
-    
-    for (let i = 0; i < atoms.length; i += sampleRate) {
-        const atom = atoms[i];
-        const color = getAtomColor(atom.element);
-        const material = new THREE.MeshPhongMaterial({ color: color });
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.set(atom.x, atom.y, atom.z);
-        group.add(sphere);
-    }
-    
-    const box = new THREE.Box3().setFromObject(group);
-    const center = box.getCenter(new THREE.Vector3());
-    group.position.sub(center);
-    
-    return group;
-}
+let nglLoading = null;
 
-function getAtomColor(element) {
-    const colors = {
-        'C': 0x909090, 'N': 0x3050F8, 'O': 0xFF0D0D,
-        'S': 0xFFFF30, 'H': 0xFFFFFF
-    };
-    return colors[element] || 0x667eea;
-}
-
-// Initialize Controls
-function initializeControls() {
-    const controls = {
-        '3dmol': ['Cartoon', 'Surface', 'Stick', 'Sphere', 'Reset'],
-        'ngl': ['Cartoon', 'Surface', 'Ball+Stick', 'Spacefill', 'Reset'],
-        'simple': ['Reset', 'Toggle Rotation', 'Zoom In', 'Zoom Out']
-    };
-    
-    ['3dmol', 'ngl', 'simple'].forEach(function(viewer) {
-        const container = document.getElementById('controls-' + viewer);
-        container.innerHTML = '';
-        
-        controls[viewer].forEach(function(ctrl) {
-            const btn = document.createElement('button');
-            btn.className = 'control-btn';
-            btn.textContent = ctrl;
-            btn.onclick = function() { handleControl(viewer, ctrl); };
-            container.appendChild(btn);
+function loadNGL() {
+    if (typeof NGL !== 'undefined') return Promise.resolve();
+    if (!nglLoading) {
+        nglLoading = new Promise((resolve, reject) => {
+            const script = el('script', { src: NGL_SCRIPT.src, integrity: NGL_SCRIPT.integrity, crossOrigin: 'anonymous' });
+            script.onload = resolve;
+            script.onerror = () => {
+                nglLoading = null;
+                reject(new Error('The NGL viewer could not load.'));
+            };
+            document.head.append(script);
         });
-    });
-}
-
-// Handle Control
-function handleControl(viewer, control) {
-    if (viewer === '3dmol') {
-        const v = appState.viewerInstances['3dmol'];
-        if (!v) return;
-        
-        v.setStyle({}, {});
-        
-        if (control === 'Cartoon') {
-            v.setStyle({}, { cartoon: { color: 'spectrum' } });
-        } else if (control === 'Surface') {
-            v.setStyle({}, { cartoon: { color: 'spectrum' } });
-            v.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.7, color: 'white' });
-        } else if (control === 'Stick') {
-            v.setStyle({}, { stick: { colorscheme: 'Jmol' } });
-        } else if (control === 'Sphere') {
-            v.setStyle({}, { sphere: { colorscheme: 'Jmol' } });
-        } else if (control === 'Reset') {
-            v.setStyle({}, { cartoon: { color: 'spectrum' } });
-            v.zoomTo();
-        }
-        v.render();
-    } else if (viewer === 'ngl') {
-        const instance = appState.viewerInstances['ngl'];
-        if (!instance) return;
-        
-        const component = instance.component;
-        component.removeAllRepresentations();
-        
-        if (control === 'Cartoon') {
-            component.addRepresentation('cartoon', { color: 'chainname' });
-        } else if (control === 'Surface') {
-            component.addRepresentation('surface', { opacity: 0.7 });
-        } else if (control === 'Ball+Stick') {
-            component.addRepresentation('ball+stick');
-        } else if (control === 'Spacefill') {
-            component.addRepresentation('spacefill');
-        } else if (control === 'Reset') {
-            component.addRepresentation('cartoon', { color: 'chainname' });
-            component.autoView();
-        }
-    } else if (viewer === 'simple') {
-        const instance = appState.viewerInstances['simple'];
-        if (!instance) return;
-        
-        if (control === 'Reset') {
-            instance.camera.position.set(0, 0, 50);
-            instance.protein.rotation.set(0, 0, 0);
-        } else if (control === 'Toggle Rotation') {
-            instance.autoRotate = !instance.autoRotate;
-        } else if (control === 'Zoom In') {
-            instance.camera.position.z = Math.max(10, instance.camera.position.z - 5);
-        } else if (control === 'Zoom Out') {
-            instance.camera.position.z = Math.min(100, instance.camera.position.z + 5);
-        }
     }
+    return nglLoading;
 }
 
-// Display Protein Info
-function displayProteinInfo(protein, data) {
-    if (!protein || !data) return;
-    
-    const infoDiv = document.getElementById('protein-info');
-    if (!infoDiv) return;
-    
-    const proteinName = protein.name || 'Unknown Protein';
-    const organism = data.organism || 'Unknown';
-    const length = data.length || 'Unknown';
-    const relevance = protein.relevance || 'Protein of interest';
-    const proteinFunction = protein.function || 'Function information not available';
-    const drugs = protein.drugs || null;
-    const uniprotId = data.uniprot_id || 'N/A';
-    const confidence = data.confidence || 'Unknown';
-    
-    infoDiv.innerHTML = '<h3>🧬 ' + proteinName + '</h3>' +
-        '<div class="info-box" style="background: #e8f5e9; border-left-color: #4caf50;">' +
-        '<h4 style="color: #2e7d32;">🔍 Quick Overview</h4>' +
-        '<p>' + proteinName + ' is a protein found in ' + organism + ' with ' + length + ' amino acids.</p>' +
-        '<p><strong>Why it matters:</strong> ' + relevance + '</p>' +
-        '</div>' +
-        '<h4 style="margin-top: 25px;">🔬 Molecular Details</h4>' +
-        '<p><strong>UniProt ID:</strong> ' + uniprotId + '</p>' +
-        '<p><strong>Sequence Length:</strong> ' + length + ' residues</p>' +
-        '<p><strong>Organism:</strong> ' + organism + '</p>' +
-        '<p><strong>Structure Source:</strong> ' + confidence + '</p>' +
-        '<h4 style="margin-top: 25px;">⚙️ Function & Mechanism</h4>' +
-        '<p>' + proteinFunction + '</p>' +
-        (drugs ? '<div class="info-box" style="background: #fff3e0; border-left-color: #ff9800;"><h4 style="color: #e65100;">💊 Therapeutic Agents</h4><p><strong>Known drugs:</strong> ' + drugs + '</p><p style="font-size: 0.9em; margin-top: 10px;">These agents work by modulating protein activity through various mechanisms including competitive inhibition, allosteric regulation, or direct binding.</p></div>' : '') +
-        '<h4 style="margin-top: 25px;">🎯 3D Structure Analysis</h4>' +
-        '<p>The visualization shows the protein folded 3D conformation. Key features to observe:</p>' +
-        '<ul style="margin-left: 20px; margin-top: 10px;">' +
-        '<li><strong>Secondary structures:</strong> Alpha-helices (spiral regions) and beta-sheets (flat regions)</li>' +
-        '<li><strong>Active sites:</strong> Pocket-like cavities that may serve as drug binding sites</li>' +
-        '<li><strong>Surface properties:</strong> Regions that interact with other molecules</li>' +
-        '</ul>' +
-        '<div class="info-box" style="background: #e3f2fd; border-left-color: #2196f3; margin-top: 15px;"><h4 style="color: #1565c0;">💡 Pro Tip</h4><p>Try different visualization modes (Cartoon, Surface, Stick) to explore various structural aspects. Switch to the "💬 Ask Questions" tab to learn more!</p></div>';
-}
-
-// Send Protein Question
-function sendProteinQuestion() {
-    const input = document.getElementById('qa-input');
-    const question = input.value.trim();
-    
-    if (!question || !appState.currentProtein) return;
-    
-    addQAMessage('user', question);
-    input.value = '';
-    
-    const sendBtn = document.getElementById('qa-send-btn');
-    sendBtn.disabled = true;
-    sendBtn.textContent = '🤔 Thinking...';
-    
-    const protein = appState.currentProtein;
-    const data = appState.currentPDBData;
-    
-    // Optimized prompt for concise, structured responses under 500 tokens
-    const systemPrompt = 'You are a biomedical expert. Answer CONCISELY in under 400 words.\n\n' +
-        'Protein: ' + (protein.name || 'Unknown') + '\n' +
-        'Function: ' + (protein.function || 'N/A') + '\n' +
-        'Clinical Relevance: ' + (protein.relevance || 'N/A') + '\n' +
-        'Known Drugs: ' + (protein.drugs || 'None') + '\n' +
-        'Organism: ' + (data ? data.organism : 'N/A') + '\n' +
-        'Length: ' + (data ? data.length : 'N/A') + ' amino acids\n\n' +
-        'RULES:\n' +
-        '- Answer ONLY the specific question asked\n' +
-        '- Be direct and to-the-point, no extra information\n' +
-        '- Use natural emojis (🧬 💊 ⚡ 🎯 ⚠️ ✅) to enhance readability\n' +
-        '- Structure your answer with these tags when appropriate:\n' +
-        '  [KEY] for main answer\n' +
-        '  [MECHANISM] for how it works\n' +
-        '  [CLINICAL] for medical relevance\n' +
-        '  [WARNING] for important cautions\n' +
-        '  [TIP] for helpful insights\n' +
-        '- Keep each section 1-3 sentences MAX\n' +
-        '- Use **bold** for important terms\n\n' +
-        'Question: ' + question + '\n\n' +
-        'Answer (under 400 words):';
-    
-    const tokenInput = document.getElementById('hf-token-input');
-    const userToken = tokenInput ? tokenInput.value.trim() : '';
-    
-    fetch('/chat_question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            prompt: systemPrompt,
-            model: appState.selectedModel,
-            hf_token: userToken
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.response) {
-            addQAMessage('bot', data.response);
-        } else if (data.error) {
-            addQAMessage('bot', '⚠️ Error: ' + data.error + '\n\nPlease try rephrasing your question.');
-        } else {
-            addQAMessage('bot', '⚠️ Unable to generate response. The AI model may be temporarily unavailable. Please try again in a moment.');
-        }
-    })
-    .catch(error => {
-        addQAMessage('bot', '❌ Connection error: ' + error.message + '\n\nPlease check your connection and try again.');
-    })
-    .finally(() => {
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Question';
-    });
-}
-
-// Add QA Message
-function addQAMessage(role, content) {
-    const messagesDiv = document.getElementById('qa-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'qa-message ' + (role === 'user' ? 'user-qa' : 'bot-qa');
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'qa-message-content';
-    
-    if (role === 'bot') {
-        contentDiv.innerHTML = formatQAResponse(content);
+function applyNGLStyle() {
+    const view = state.viewers.ngl;
+    if (!view.component) return;
+    view.component.removeAllRepresentations();
+    if (view.style === 'surface') {
+        view.component.addRepresentation('surface', { color: 'residueindex', opacity: 0.8 });
+    } else if (view.style === 'ballstick') {
+        view.component.addRepresentation('ball+stick', { color: 'element' });
+    } else if (view.style === 'spacefill') {
+        view.component.addRepresentation('spacefill', { color: 'element' });
     } else {
-        contentDiv.textContent = content;
+        view.component.addRepresentation('cartoon', { color: 'residueindex' });
     }
-    
-    messageDiv.appendChild(contentDiv);
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Format QA Response
-function formatQAResponse(text) {
-    let formatted = text;
-
-    // Handle tags WITHOUT closing tags (single line format)
-    // Match [TAG] at start of line followed by content until end of line or next tag
-    formatted = formatted.replace(/\[KEY\]\s*(.*?)(?=\n\[|$)/gs, '<div class="qa-key-box">🎯 <strong>Key Point:</strong> $1</div>');
-    formatted = formatted.replace(/\[MECHANISM\]\s*(.*?)(?=\n\[|$)/gs, '<div class="qa-mechanism-box">⚡ <strong>Mechanism:</strong> $1</div>');
-    formatted = formatted.replace(/\[CLINICAL\]\s*(.*?)(?=\n\[|$)/gs, '<div class="qa-clinical-box">💊 <strong>Clinical:</strong> $1</div>');
-    formatted = formatted.replace(/\[WARNING\]\s*(.*?)(?=\n\[|$)/gs, '<div class="qa-warning-box">⚠️ <strong>Warning:</strong> $1</div>');
-    formatted = formatted.replace(/\[TIP\]\s*(.*?)(?=\n\[|$)/gs, '<div class="qa-tip-box">💡 <strong>Tip:</strong> $1</div>');
-    
-    // Handle tags WITH closing tags (wrapped format)
-    formatted = formatted.replace(/\[KEY\](.*?)\[\/KEY\]/gs, '<div class="qa-key-box">🎯 <strong>Key Point:</strong> $1</div>');
-    formatted = formatted.replace(/\[MECHANISM\](.*?)\[\/MECHANISM\]/gs, '<div class="qa-mechanism-box">⚡ <strong>Mechanism:</strong> $1</div>');
-    formatted = formatted.replace(/\[CLINICAL\](.*?)\[\/CLINICAL\]/gs, '<div class="qa-clinical-box">💊 <strong>Clinical:</strong> $1</div>');
-    formatted = formatted.replace(/\[WARNING\](.*?)\[\/WARNING\]/gs, '<div class="qa-warning-box">⚠️ <strong>Warning:</strong> $1</div>');
-    formatted = formatted.replace(/\[TIP\](.*?)\[\/TIP\]/gs, '<div class="qa-tip-box">💡 <strong>Tip:</strong> $1</div>');
-    
-    // Legacy tags support
-    formatted = formatted.replace(/\[HIGHLIGHT\](.*?)\[\/HIGHLIGHT\]/gs, '<div class="qa-key-box">✅ $1</div>');
-    formatted = formatted.replace(/\[INFO\](.*?)\[\/INFO\]/gs, '<div class="qa-tip-box">ℹ️ $1</div>');
-
-    // Bold text
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Bullet points
-    formatted = formatted.replace(/^- (.+)$/gm, '<li>$1</li>');
-    formatted = formatted.replace(/(<li>.*<\/li>\n?)+/g, match => '<ul>' + match + '</ul>');
-    
-    // Paragraphs (only for text NOT already in divs)
-    formatted = formatted.replace(/\n\n/g, '</p><p>');
-    
-    // Wrap only if not starting with a div
-    if (!formatted.trim().startsWith('<div')) {
-        formatted = '<p>' + formatted + '</p>';
-    }
-
-    return formatted;
+function renderNGLControls() {
+    const view = state.viewers.ngl;
+    const bar = byId('controls-ngl');
+    bar.hidden = false;
+    bar.replaceChildren(
+        toolbarGroup(
+            'Style',
+            [['cartoon', 'Cartoon'], ['surface', 'Surface'], ['ballstick', 'Ball and stick'], ['spacefill', 'Spacefill']],
+            view.style,
+            (value) => {
+                view.style = value;
+                applyNGLStyle();
+                renderNGLControls();
+            }
+        ),
+        el(
+            'div',
+            { class: 'tool-group tool-actions' },
+            el('button', { class: 'btn btn-quiet', type: 'button', onclick: () => view.component && view.component.autoView() }, 'Reset view'),
+            el('button', { class: 'btn btn-quiet', type: 'button', onclick: downloadStructure }, 'Download PDB')
+        )
+    );
 }
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
+async function renderNGL() {
+    const view = state.viewers.ngl;
+    const key = structureKey();
+    if (!key) return;
 
-    document.getElementById('chat-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
+    if (view.key === key) {
+        if (view.stage) view.stage.handleResize();
+        return;
+    }
+    view.key = key;
+
+    try {
+        await loadNGL();
+        if (view.key !== key) return;
+        if (!view.stage) {
+            view.stage = new NGL.Stage(byId('viewer-ngl'), { backgroundColor: VIEWER_BACKGROUND });
+        }
+        view.stage.removeAllComponents();
+        view.stage.handleResize();
+        const blob = new Blob([state.structure.pdb_data], { type: 'text/plain' });
+        const component = await view.stage.loadFile(blob, { ext: 'pdb' });
+        if (view.key !== key) return;
+        view.component = component;
+        view.style = 'cartoon';
+        applyNGLStyle();
+        component.autoView();
+        renderNGLControls();
+    } catch (error) {
+        view.key = null;
+        const box = byId('message-ngl');
+        box.hidden = false;
+        box.classList.add('error');
+        box.replaceChildren(el('h3', {}, 'The NGL viewer could not load'), el('p', {}, 'Use the 3D view tab instead, or reload the page.'));
+    }
+}
+
+// Details tab
+
+function section(title, ...content) {
+    return el('section', { class: 'detail-section' }, el('h4', {}, title), ...content);
+}
+
+function renderDetails(protein) {
+    const accession = protein.uniprot_id;
+    const links = [
+        externalLink('UniProt', `https://www.uniprot.org/uniprotkb/${encodeURIComponent(accession)}/entry`),
+        externalLink('AlphaFold DB', `https://alphafold.ebi.ac.uk/entry/${encodeURIComponent(accession)}`),
+    ];
+    if (state.bestPdb && state.structure) {
+        links.push(externalLink(`RCSB ${state.bestPdb.id}`, `https://www.rcsb.org/structure/${encodeURIComponent(state.bestPdb.id)}`));
+    }
+    links.push(externalLink('Open Targets', `https://platform.opentargets.org/search?q=${encodeURIComponent(protein.gene || accession)}`));
+
+    const facts = [
+        ['Accession', accession],
+        ['Gene', protein.gene],
+        ['Organism', protein.organism],
+        ['Length', protein.length ? `${protein.length} residues` : null],
+        ['Structure', state.structure ? state.structure.label : null],
+    ].filter(([, value]) => value);
+
+    setChildren(
+        byId('protein-info'),
+        el('h3', {}, protein.name || 'Unknown protein'),
+        el('span', { class: `badge badge-${protein.source}` }, SOURCE_LABELS[protein.source] || 'Result'),
+        el('dl', { class: 'facts' }, ...facts.flatMap(([term, value]) => [el('dt', {}, term), el('dd', {}, value)])),
+        protein.relevance ? section('Why it may matter', el('p', {}, protein.relevance)) : null,
+        protein.function ? section('Function (UniProt)', el('p', {}, protein.function)) : null,
+        protein.diseases && protein.diseases.length
+            ? section('Disease associations (UniProt)', el('ul', {}, ...protein.diseases.map((name) => el('li', {}, name))))
+            : null,
+        protein.drugs
+            ? section(
+                protein.source === 'ai' ? 'Drugs (AI-suggested, verify before use)' : 'Drugs (curated)',
+                el('p', {}, protein.drugs)
+            )
+            : null,
+        section('Explore further', el('div', { class: 'link-row' }, ...links))
+    );
+}
+
+// Ask AI tab
+
+function resetQA(protein) {
+    const askAbout = (question) => {
+        byId('qa-input').value = question;
+        sendQuestion();
+    };
+    byId('qa-messages').replaceChildren(
+        el(
+            'div',
+            { class: 'empty-state' },
+            el('h3', {}, `Ask about ${protein.name || 'this protein'}`),
+            el('p', {}, 'Answers use the UniProt record as context, but they can still be wrong.'),
+            el(
+                'div',
+                { class: 'chips' },
+                ...SUGGESTED_QUESTIONS.map((question) =>
+                    el('button', { class: 'chip', type: 'button', onclick: () => askAbout(question) }, question)
+                )
+            )
+        )
+    );
+    byId('qa-input').disabled = false;
+    byId('qa-send-btn').disabled = false;
+}
+
+// Adds **bold** text as real elements, so model output can't inject markup.
+function inlineNodes(text) {
+    return text.split(/\*\*(.+?)\*\*/g).map((part, index) => (index % 2 ? el('strong', {}, part) : document.createTextNode(part)));
+}
+
+function blockNodes(text) {
+    const nodes = [];
+    let list = null;
+    text.split('\n').forEach((rawLine) => {
+        const line = rawLine.trim();
+        if (!line) {
+            list = null;
+            return;
+        }
+        const bullet = line.match(/^[-*•]\s+(.*)$/);
+        if (bullet) {
+            if (!list) {
+                list = el('ul');
+                nodes.push(list);
+            }
+            list.append(el('li', {}, ...inlineNodes(bullet[1])));
+        } else {
+            list = null;
+            nodes.push(el('p', {}, ...inlineNodes(line)));
         }
     });
+    return nodes;
+}
 
-    document.querySelectorAll('.viewer-tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            switchTab(this.getAttribute('data-tab'));
+function formatAnswer(text) {
+    const cleaned = text.replace(/\[\/(KEY|MECHANISM|CLINICAL|WARNING|TIP)\]/g, '');
+    const parts = cleaned.split(/\[(KEY|MECHANISM|CLINICAL|WARNING|TIP)\]:?/);
+    const nodes = blockNodes(parts[0]);
+    for (let i = 1; i < parts.length; i += 2) {
+        const tag = parts[i];
+        nodes.push(
+            el(
+                'div',
+                { class: `qa-section qa-${tag.toLowerCase()}` },
+                el('span', { class: 'qa-label' }, QA_SECTIONS[tag]),
+                ...blockNodes(parts[i + 1] || '')
+            )
+        );
+    }
+    return nodes;
+}
+
+function addQAMessage(role, ...content) {
+    const log = byId('qa-messages');
+    const emptyState = log.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+    const message = el('div', { class: `message ${role}` }, ...content);
+    log.append(message);
+    scrollToEnd(log);
+    return message;
+}
+
+async function sendQuestion() {
+    const input = byId('qa-input');
+    const question = input.value.trim();
+    const protein = state.protein;
+    if (!question || !protein) return;
+
+    input.value = '';
+    addQAMessage('user', question);
+    const button = byId('qa-send-btn');
+    button.disabled = true;
+    const pending = addQAMessage(
+        'assistant',
+        el('div', { class: 'pending' }, el('span', { class: 'dots', 'aria-hidden': 'true' }), 'Thinking')
+    );
+
+    try {
+        const data = await postJSON('/api/ask', {
+            uniprot_id: protein.uniprot_id,
+            question,
+            model: selectedModel(),
+            context: { relevance: protein.relevance, drugs: protein.drugs },
         });
+        pending.remove();
+        if (state.protein && state.protein.uniprot_id === protein.uniprot_id) {
+            addQAMessage('assistant', ...formatAnswer(data.response));
+        }
+    } catch (error) {
+        pending.remove();
+        addQAMessage('assistant error', error.message);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+// Theme
+
+function currentTheme() {
+    const explicit = document.documentElement.dataset.theme;
+    if (explicit) return explicit;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function updateThemeButton() {
+    byId('theme-toggle').textContent = currentTheme() === 'dark' ? 'Light theme' : 'Dark theme';
+}
+
+function toggleTheme() {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try {
+        localStorage.setItem('theme', next);
+    } catch (error) {
+        // Storage can be blocked. The theme still applies for this visit.
+    }
+    updateThemeButton();
+}
+
+// Startup
+
+function updateModelNote() {
+    const select = byId('model-select');
+    byId('model-info').textContent = select.options[select.selectedIndex].dataset.note || '';
+}
+
+function submitSearch() {
+    const input = byId('chat-input');
+    const query = input.value.trim();
+    if (!query || byId('send-btn').disabled) return;
+    input.value = '';
+    runSearch(query);
+}
+
+function handleTabKeys(event) {
+    const tabs = Array.from(document.querySelectorAll('.tab'));
+    const index = tabs.indexOf(document.activeElement);
+    if (index === -1) return;
+    let next = null;
+    if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+    if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
+    if (next) {
+        event.preventDefault();
+        next.focus();
+        switchTab(next.dataset.tab);
+    }
+}
+
+function init() {
+    byId('search-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        submitSearch();
+    });
+    byId('chat-input').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            submitSearch();
+        }
+    });
+    byId('example-queries').addEventListener('click', (event) => {
+        if (event.target.matches('.chip')) runSearch(event.target.textContent);
     });
 
-    document.getElementById('model-select').addEventListener('change', function() {
-        appState.selectedModel = this.value;
-        const info = document.getElementById('model-info');
-        if (info) {
-            info.textContent = modelDescriptions[this.value] || 'Model selected';
+    byId('qa-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        sendQuestion();
+    });
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+    document.querySelector('.tabs').addEventListener('keydown', handleTabKeys);
+
+    byId('source-switch').addEventListener('click', (event) => {
+        const button = event.target.closest('.segment');
+        if (!button || !state.protein || !state.structure) return;
+        if (button.dataset.source !== state.structure.source) {
+            loadProtein(state.protein, button.dataset.source === 'pdb' ? 'pdb' : 'auto');
         }
     });
 
-    document.getElementById('qa-send-btn').addEventListener('click', sendProteinQuestion);
+    byId('model-select').addEventListener('change', updateModelNote);
+    byId('theme-toggle').addEventListener('click', toggleTheme);
+    updateModelNote();
+    updateThemeButton();
 
-    document.getElementById('qa-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            sendProteinQuestion();
-        }
+    window.addEventListener('resize', () => {
+        const mol = state.viewers['3dmol'];
+        if (state.activeTab === '3dmol' && mol.instance) mol.instance.resize();
+        const ngl = state.viewers.ngl;
+        if (state.activeTab === 'ngl' && ngl.stage) ngl.stage.handleResize();
     });
-});
+}
+
+init();

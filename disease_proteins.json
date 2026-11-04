@@ -5,21 +5,21 @@
       "uniprot_id": "P05067",
       "relevance": "Central to amyloid plaque formation in Alzheimer disease",
       "function": "Involved in neuronal development and synaptic plasticity",
-      "drugs": "Aducanumab, Lecanemab (monoclonal antibodies)"
+      "drugs": "Lecanemab, Donanemab (approved anti-amyloid antibodies)"
     },
     {
       "name": "Beta-Secretase 1 (BACE1)",
       "uniprot_id": "P56817",
       "relevance": "Key enzyme in amyloid-beta production",
       "function": "Cleaves APP to produce amyloid-beta peptides",
-      "drugs": "Multiple BACE inhibitors in development"
+      "drugs": "None approved; BACE1 inhibitors such as verubecestat and lanabecestat were discontinued after failed trials"
     },
     {
       "name": "Tau Protein (MAPT)",
       "uniprot_id": "P10636",
       "relevance": "Forms neurofibrillary tangles characteristic of Alzheimer",
       "function": "Microtubule-associated protein involved in neuronal transport",
-      "drugs": "Tau aggregation inhibitors in clinical trials"
+      "drugs": "None approved; anti-tau antibodies and aggregation inhibitors are in clinical trials"
     }
   ],
   "parkinson": [
@@ -28,21 +28,21 @@
       "uniprot_id": "P37840",
       "relevance": "Forms Lewy bodies in Parkinson disease",
       "function": "Presynaptic protein involved in dopamine regulation",
-      "drugs": "Multiple aggregation inhibitors in development"
+      "drugs": "None approved; anti-alpha-synuclein antibodies such as prasinezumab are in clinical trials"
     },
     {
       "name": "LRRK2",
       "uniprot_id": "Q5S007",
       "relevance": "Most common genetic cause of Parkinson",
       "function": "Kinase involved in autophagy and mitochondrial function",
-      "drugs": "LRRK2 inhibitors in clinical trials"
+      "drugs": "None approved; LRRK2 kinase inhibitors such as BIIB122 are in clinical trials"
     },
     {
       "name": "GBA (Glucocerebrosidase)",
       "uniprot_id": "P04062",
       "relevance": "Mutations increase Parkinson risk",
       "function": "Lysosomal enzyme breaking down glucocerebroside",
-      "drugs": "Enzyme replacement and chaperone therapies"
+      "drugs": "None approved for Parkinson disease; the chaperone ambroxol is under investigation"
     }
   ],
   "diabetes": [
@@ -51,7 +51,7 @@
       "uniprot_id": "P06213",
       "relevance": "Central to glucose metabolism and insulin signaling",
       "function": "Mediates cellular response to insulin",
-      "drugs": "Insulin sensitizers like metformin target this pathway"
+      "drugs": "Insulin and insulin analogs (direct agonists)"
     },
     {
       "name": "DPP-4 (Dipeptidyl Peptidase-4)",
@@ -111,7 +111,7 @@
       "uniprot_id": "P35354",
       "relevance": "Produces inflammatory prostaglandins",
       "function": "Enzyme converting arachidonic acid to prostaglandins",
-      "drugs": "Celecoxib, Rofecoxib"
+      "drugs": "Celecoxib"
     }
   ],
   "heart": [
@@ -152,21 +152,21 @@
       "uniprot_id": "Q99217",
       "relevance": "Essential for tooth enamel formation",
       "function": "Primary protein in developing tooth enamel",
-      "drugs": "Enamel regeneration therapies in development"
+      "drugs": "None approved; enamel and dentin regeneration approaches are experimental"
     },
     {
       "name": "Enamelin (ENAM)",
       "uniprot_id": "Q9NRM1",
       "relevance": "Critical for enamel mineralization",
       "function": "Largest protein in enamel matrix",
-      "drugs": "Biomimetic enamel repair treatments"
+      "drugs": "None approved; enamel and dentin regeneration approaches are experimental"
     },
     {
       "name": "Dentin Sialophosphoprotein (DSPP)",
       "uniprot_id": "Q9NZW4",
       "relevance": "Essential for dentin formation",
       "function": "Major non-collagenous protein in dentin",
-      "drugs": "Dentin regeneration therapies"
+      "drugs": "None approved; enamel and dentin regeneration approaches are experimental"
     }
   ],
   "dental": [
@@ -175,7 +175,7 @@
       "uniprot_id": "Q99217",
       "relevance": "Essential for tooth enamel formation",
       "function": "Primary protein in developing tooth enamel",
-      "drugs": "Enamel regeneration therapies in development"
+      "drugs": "None approved; enamel and dentin regeneration approaches are experimental"
     }
   ],
   "bone": [
@@ -232,7 +232,7 @@
       "uniprot_id": "P35354",
       "relevance": "Mediates inflammatory pain",
       "function": "Produces prostaglandins involved in pain signaling",
-      "drugs": "Celecoxib, Ibuprofen, Naproxen"
+      "drugs": "Celecoxib (selective); Ibuprofen, Naproxen (non-selective COX inhibitors)"
     },
     {
       "name": "Mu Opioid Receptor",
@@ -255,7 +255,7 @@
       "uniprot_id": "P28223",
       "relevance": "Involved in mood regulation",
       "function": "G-protein coupled receptor for serotonin",
-      "drugs": "Atypical antipsychotics"
+      "drugs": "Atypical antipsychotics used as adjuncts, such as Quetiapine; Psilocybin is under investigation"
     }
   ],
   "psoriasis": [
@@ -283,11 +283,11 @@
       "drugs": "Infliximab, Adalimumab"
     },
     {
-      "name": "Integrin alpha-4-beta-7",
-      "uniprot_id": "P16144",
-      "relevance": "Mediates lymphocyte homing to gut",
-      "function": "Cell adhesion molecule",
-      "drugs": "Vedolizumab"
+      "name": "Integrin alpha-4 (ITGA4)",
+      "uniprot_id": "P13612",
+      "relevance": "The alpha-4-beta-7 integrin directs lymphocytes into inflamed gut tissue",
+      "function": "Subunit of integrins that mediate lymphocyte adhesion and migration",
+      "drugs": "Vedolizumab (binds the alpha-4-beta-7 heterodimer), Natalizumab"
     }
   ],
   "kidney": [
@@ -312,21 +312,21 @@
       "uniprot_id": "O14793",
       "relevance": "Negative regulator of muscle growth, key target for sarcopenia",
       "function": "Inhibits muscle cell growth and differentiation",
-      "drugs": "Myostatin inhibitors in clinical trials"
+      "drugs": "None approved for sarcopenia; myostatin pathway inhibitors have been studied in clinical trials"
     },
     {
       "name": "IGF-1 (Insulin-like Growth Factor 1)",
       "uniprot_id": "P05019",
       "relevance": "Promotes muscle protein synthesis and prevents atrophy",
       "function": "Stimulates growth and maintains muscle mass",
-      "drugs": "IGF-1 analogs, growth hormone therapies"
+      "drugs": "Mecasermin (approved only for severe primary IGF-1 deficiency)"
     },
     {
       "name": "mTOR (Mechanistic Target of Rapamycin)",
       "uniprot_id": "P42345",
       "relevance": "Central regulator of muscle protein synthesis",
       "function": "Controls cell growth and protein synthesis",
-      "drugs": "mTOR activators for muscle wasting"
+      "drugs": "mTOR inhibitors Sirolimus and Everolimus are approved for other indications; none approved for sarcopenia"
     }
   ],
   "muscle": [
@@ -335,14 +335,30 @@
       "uniprot_id": "O14793",
       "relevance": "Key regulator of muscle mass",
       "function": "Inhibits muscle growth",
-      "drugs": "Myostatin inhibitors"
+      "drugs": "None approved for muscle wasting; myostatin pathway inhibitors have been studied in clinical trials"
     },
     {
       "name": "IGF-1 (Insulin-like Growth Factor 1)",
       "uniprot_id": "P05019",
       "relevance": "Promotes muscle growth and repair",
       "function": "Growth factor for muscle tissue",
-      "drugs": "Growth hormone therapies"
+      "drugs": "Mecasermin (approved only for severe primary IGF-1 deficiency)"
+    }
+  ],
+  "obesity": [
+    {
+      "name": "GLP-1 Receptor (GLP1R)",
+      "uniprot_id": "P43220",
+      "relevance": "Regulates appetite and insulin secretion, and is a validated obesity target",
+      "function": "G protein-coupled receptor for glucagon-like peptide 1",
+      "drugs": "Semaglutide, Liraglutide, Tirzepatide (dual GIP/GLP-1 agonist)"
+    },
+    {
+      "name": "Melanocortin 4 Receptor (MC4R)",
+      "uniprot_id": "P32245",
+      "relevance": "Central regulator of energy balance; variants cause monogenic obesity",
+      "function": "Hypothalamic receptor that controls food intake and energy expenditure",
+      "drugs": "Setmelanotide (approved for specific genetic forms of obesity)"
     }
   ]
 }

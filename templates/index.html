@@ -2,126 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Drug Discovery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Protein Target Explorer</title>
+    <meta name="description" content="Find human protein drug targets from a research question, verify them against UniProt, and explore their 3D structures.">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
-    <script src="https://unpkg.com/ngl@2.0.0-dev.37/dist/ngl.js"></script>
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js"
+            integrity="sha384-zxWwO8usW1MzUHquSL3foT+Cw2ndelPQ5bNzHVYdKGiJ0vqvqQ8Y9XeKLmotffmQ"
+            crossorigin="anonymous"></script>
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>🧬 Protein Sequencing for AI Discovery | by <a href="https://www.linkedin.com/in/mnoorchenar" target="_blank">Mohammad Noorchenarboo</a></h1>
-          <!-- <button id="theme-toggle" class="theme-toggle-btn">🌙 Dark Mode</button> -->
-
-    </div>
-    
-    <div class="main-container">
-        <div class="chat-panel">
-            <div class="chat-header">
-                <h2>💬 Chat</h2>
-                <div class="model-selector">
-                    <label>🤖 Model:</label>
-
-                  
-<select id="model-select">
-<optgroup label="General / Default Models">
-    <option value="mistralai/Mistral-7B-Instruct-v0.3" selected>Mistral 7B Instruct v0.3 (Default)</option>
-    <option value="meta-llama/Llama-3.2-3B-Instruct">Llama 3.2 3B Instruct</option>
-    <option value="microsoft/Phi-3-mini-4k-instruct">Phi 3 Mini 4K Instruct</option>
-    <option value="ServiceNow-AI/Apriel-5B-Instruct">Apriel 5B Instruct</option>
-    <option value="prithivMLmods/Llama-3.1-5B-Instruct">Llama 3.1 5B Instruct</option>
-</optgroup>
-</select>
-
-                  
-                </div>                
-              <div class="model-selector">
-                          <label>🔑 HF Token (Optional):</label>
-                          <input type="text" id="hf-token-input" placeholder="hf_... (uses default if empty)">                      
-                </div>
-            </div>
-            
-            <div class="chat-messages" id="chat-messages">
-                <div class="welcome-message">
-                    <h3>Welcome! 👋</h3>
-                    <p>Ask me about diseases, proteins, or drug targets to discover and visualize protein structures.</p>
-                </div>
-            </div>
-            
-            <div class="chat-input-area">
-                <textarea id="chat-input" placeholder="Example: diabetes proteins, Alzheimer disease targets..."></textarea>
-                <button id="send-btn">🔬 Discover Proteins</button>
+    <header class="site-header">
+        <div class="brand">
+            <img src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="28" height="28">
+            <div>
+                <h1>Protein Target Explorer</h1>
+                <p>From a research question to verified human targets and 3D structures</p>
             </div>
         </div>
-        
-        <div class="viewer-panel">
-            <div class="viewer-tabs">
-                <button class="viewer-tab active" data-tab="3dmol">🔷 3Dmol</button>
-                <button class="viewer-tab" data-tab="ngl">💎 NGL</button>
-                <button class="viewer-tab" data-tab="simple">🎨 Simple</button>
-                <button class="viewer-tab" data-tab="info">📊 Info</button>
-                <button class="viewer-tab" data-tab="questions">💬 Ask Questions</button>
-            </div>
-            
-            <div class="viewer-content">
-                <div id="tab-3dmol" class="tab-pane active">
-                    <div class="visualization-container">
-                        <div id="protein-viewer">
-                            <div class="loading">
-                                <h3>Ready to explore!</h3>
-                                <p>Search for proteins to visualize their 3D structures.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="viewer-controls" id="controls-3dmol"></div>
-                </div>
-                
-                <div id="tab-ngl" class="tab-pane">
-                    <div class="visualization-container">
-                        <div id="protein-viewer-ngl"></div>
-                    </div>
-                    <div class="viewer-controls" id="controls-ngl"></div>
-                </div>
-                
-                <div id="tab-simple" class="tab-pane">
-                    <div class="visualization-container">
-                        <div id="protein-viewer-simple"></div>
-                    </div>
-                    <div class="viewer-controls" id="controls-simple"></div>
-                </div>
-                
-                <div id="tab-info" class="tab-pane">
-                    <div class="explanation-container" id="protein-info">
-                        <div class="welcome-message">
-                            <h3>Protein Information</h3>
-                            <p>Click on a protein from the chat to see detailed information here.</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="tab-questions" class="tab-pane">
-                    <div class="protein-qa-container">
-                        <div class="qa-messages" id="qa-messages">
-                            <div class="welcome-message">
-                                <h3>💬 Ask Questions</h3>
-                                <p>Load a protein structure first, then ask me anything about it!</p>
-                            </div>
-                        </div>
-                        <div class="qa-input-area">
-                            <input type="text" id="qa-input" placeholder="Ask about this protein..." disabled>
-                            <button id="qa-send-btn" disabled>Send Question</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="footer">
-        <p>© 2025 Mohammad Noorchenarboo. All rights reserved.</p>
-    </div>
+        <nav class="header-actions" aria-label="Project links">
+            <a href="https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery" target="_blank" rel="noopener noreferrer">Source</a>
+            <a href="https://www.linkedin.com/in/mnoorchenar" target="_blank" rel="noopener noreferrer">Mohammad Noorchenarboo</a>
+            <button id="theme-toggle" class="btn btn-quiet" type="button">Dark theme</button>
+        </nav>
+    </header>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <main class="workspace">
+        <section class="panel search-panel" aria-label="Protein search">
+            <div class="chat-messages" id="chat-messages" role="log" aria-live="polite">
+                <div class="welcome">
+                    <h2>What are you researching?</h2>
+                    <p>Name a disease, pathway or protein. Each AI suggestion is checked against UniProt before it's shown.</p>
+                    <div class="chips" id="example-queries">
+                        <button class="chip" type="button">Alzheimer's disease targets</button>
+                        <button class="chip" type="button">Type 2 diabetes</button>
+                        <button class="chip" type="button">EGFR in lung cancer</button>
+                        <button class="chip" type="button">Psoriasis inflammation</button>
+                    </div>
+                </div>
+            </div>
+
+            <form class="composer" id="search-form">
+                <label class="visually-hidden" for="chat-input">Research question</label>
+                <textarea id="chat-input" rows="2" maxlength="500" placeholder="For example: proteins involved in Parkinson's disease"></textarea>
+                <button id="send-btn" class="btn btn-primary" type="submit">Find targets</button>
+                <details class="settings">
+                    <summary>AI settings</summary>
+                    <div class="settings-body">
+                        <label for="model-select">Model</label>
+                        <select id="model-select">
+                            {% for model in models %}
+                            <option value="{{ model.id }}" data-note="{{ model.note }}" {% if model.id == default_model %}selected{% endif %}>{{ model.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="hint" id="model-info"></p>
+                        <label for="hf-token-input">Your Hugging Face token (optional)</label>
+                        <input type="password" id="hf-token-input" placeholder="hf_..." autocomplete="off" spellcheck="false">
+                        <p class="hint">Used for your requests only, and never stored. Leave it empty to use the demo's token.</p>
+                    </div>
+                </details>
+            </form>
+        </section>
+
+        <section class="panel viewer-panel" aria-label="Protein details">
+            <div class="protein-bar" id="protein-bar" hidden>
+                <div class="protein-bar-title">
+                    <strong id="protein-title"></strong>
+                    <span id="protein-subtitle"></span>
+                </div>
+                <div class="source-switch" id="source-switch" role="group" aria-label="Structure source" hidden>
+                    <button class="segment" type="button" data-source="alphafold">AlphaFold</button>
+                    <button class="segment" type="button" data-source="pdb" id="pdb-source-btn">PDB</button>
+                </div>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="Protein views">
+                <button class="tab" role="tab" type="button" id="tabbtn-3dmol" data-tab="3dmol" aria-controls="tab-3dmol" aria-selected="true">3D view</button>
+                <button class="tab" role="tab" type="button" id="tabbtn-ngl" data-tab="ngl" aria-controls="tab-ngl" aria-selected="false" tabindex="-1">NGL view</button>
+                <button class="tab" role="tab" type="button" id="tabbtn-info" data-tab="info" aria-controls="tab-info" aria-selected="false" tabindex="-1">Details</button>
+                <button class="tab" role="tab" type="button" id="tabbtn-ask" data-tab="ask" aria-controls="tab-ask" aria-selected="false" tabindex="-1">Ask AI</button>
+            </div>
+
+            <div class="tab-pane active" id="tab-3dmol" role="tabpanel" aria-labelledby="tabbtn-3dmol">
+                <div class="stage">
+                    <div class="stage-canvas" id="viewer-3dmol"></div>
+                    <div class="stage-message" id="message-3dmol">
+                        <h3>No protein selected</h3>
+                        <p>Search on the left, then choose a protein to see its structure.</p>
+                    </div>
+                    <div class="legend" id="plddt-legend" hidden>
+                        <span class="legend-title">Model confidence (pLDDT)</span>
+                        <span><i style="background:#0053d6"></i>Very high</span>
+                        <span><i style="background:#65cbf3"></i>Confident</span>
+                        <span><i style="background:#ffdb13"></i>Low</span>
+                        <span><i style="background:#ff7d45"></i>Very low</span>
+                        <span class="legend-mean" id="plddt-mean"></span>
+                    </div>
+                </div>
+                <div class="toolbar" id="controls-3dmol" hidden></div>
+            </div>
+
+            <div class="tab-pane" id="tab-ngl" role="tabpanel" aria-labelledby="tabbtn-ngl">
+                <div class="stage">
+                    <div class="stage-canvas" id="viewer-ngl"></div>
+                    <div class="stage-message" id="message-ngl">
+                        <h3>No protein selected</h3>
+                        <p>Search on the left, then choose a protein to see its structure.</p>
+                    </div>
+                </div>
+                <div class="toolbar" id="controls-ngl" hidden></div>
+            </div>
+
+            <div class="tab-pane" id="tab-info" role="tabpanel" aria-labelledby="tabbtn-info">
+                <div class="details" id="protein-info">
+                    <div class="empty-state">
+                        <h3>No protein selected</h3>
+                        <p>Function, diseases, drugs and database links will appear here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane" id="tab-ask" role="tabpanel" aria-labelledby="tabbtn-ask">
+                <div class="qa">
+                    <div class="qa-messages" id="qa-messages" role="log" aria-live="polite">
+                        <div class="empty-state">
+                            <h3>No protein selected</h3>
+                            <p>Choose a protein, then ask about its mechanism, clinical relevance or structure.</p>
+                        </div>
+                    </div>
+                    <form class="qa-composer" id="qa-form">
+                        <label class="visually-hidden" for="qa-input">Question about this protein</label>
+                        <input type="text" id="qa-input" maxlength="1000" placeholder="Ask about this protein" disabled>
+                        <button id="qa-send-btn" class="btn btn-primary" type="submit" disabled>Ask</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>For research and education only, not medical advice. AI output can be wrong, so verify it before use. Data: UniProt, AlphaFold DB, RCSB PDB.</p>
+    </footer>
 </body>
 </html>
