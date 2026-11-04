@@ -17,7 +17,7 @@ Turn a research question into human protein drug targets, check them against Uni
 
 LLMs often produce a convincing explanation attached to the wrong protein ID. This project treats model output as an unverified claim: a suggestion is shown only if UniProt confirms both its identity and that it's human.
 
-![AI-suggested lung cancer targets beside EGFR's AlphaFold structure, colored by model confidence](docs/app.png)
+![Demo: searching for lung cancer targets, then exploring EGFR's 3D structure, details and AI answers](docs/demo.gif)
 
 ## Features
 
