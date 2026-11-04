@@ -57,7 +57,7 @@ This app treats every suggestion as an unverified claim, and shows it only if Un
 
 AI models often give a real protein ID that belongs to the wrong protein. So the app compares each ID with the protein's name in UniProt, then corrects it or drops it.
 
-<img src="../docs/results.svg" width="100%" alt="Bar chart: the AI alone gave the correct ID for 19 of 94 suggestions, or 20 percent. With this app, 92 of 94 were verified, or 98 percent. The app corrected 73 wrong IDs and dropped 2."/>
+<img src="../docs/before-and-after.svg" width="100%" alt="Bar chart: the AI alone gave the correct ID for 19 of 94 suggestions, or 20 percent. With this app, 92 of 94 were verified, or 98 percent. The app corrected 73 wrong IDs and dropped 2."/>
 
 <sub>Tested on 20 diseases with `gpt-oss-20b`, on 2026-11-04. This is one run of one model, checked by automated name matching and a manual review of the corrections, not an expert audit. [Rerun it](../scripts/evaluate_targets.py) or see the [full data](../docs/evaluation.json).</sub>
 
