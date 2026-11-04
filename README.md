@@ -30,7 +30,7 @@ This app treats every suggestion as an unverified claim, and shows it only if Un
 
 [![Features](https://img.shields.io/badge/Features-334155?style=flat-square)](#features) [![How it works](https://img.shields.io/badge/How_it_works-334155?style=flat-square)](#how-it-works) [![Results](https://img.shields.io/badge/Results-334155?style=flat-square)](#results) [![Documentation](https://img.shields.io/badge/Documentation-334155?style=flat-square)](#documentation) [![Author](https://img.shields.io/badge/Author-334155?style=flat-square)](#author)
 
-<img src="docs/demo.gif" alt="Demo: searching for lung cancer targets, then exploring EGFR's 3D structure, details and AI answers" width="100%"/>
+<img src="docs/app-demo.gif" alt="Demo: searching for lung cancer targets, then exploring EGFR's 3D structure, details and AI answers" width="100%"/>
 
 <table>
   <tr>
