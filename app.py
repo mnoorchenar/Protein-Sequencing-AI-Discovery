@@ -61,11 +61,6 @@ def _clean_answers(raw):
     return answers
 
 
-def _user_token():
-    """An optional user token, sent as a header so it stays out of request bodies and is never stored."""
-    return request.headers.get("X-HF-Token", "").strip() or None
-
-
 def _public_protein(record, *, relevance="", drugs="", source):
     """The protein shape every endpoint returns to the frontend."""
     return {
@@ -181,9 +176,7 @@ def create_app(test_config=None):
 
     @app.get("/")
     def index():
-        return render_template(
-            "index.html", models=config.MODELS, default_model=config.DEFAULT_MODEL
-        )
+        return render_template("index.html", models=config.catalog())
 
     @app.get("/healthz")
     def health():
@@ -204,15 +197,9 @@ def create_app(test_config=None):
                 prompts.TARGETS_SYSTEM,
                 f"Research query: {query}",
                 model=data.get("model"),
-                token=_user_token(),
             )
             targets, insights = llm.parse_targets(text)
             proteins = _verify_ai_targets(targets)
-        except llm.LLMAuthError as auth_error:
-            # A bad user-supplied token should be reported, not hidden by a fallback.
-            if _user_token():
-                return jsonify({"error": str(auth_error)}), 401
-            logger.warning("LLM auth problem: %s", auth_error)
         except llm.LLMUnavailable as unavailable:
             logger.warning("LLM unavailable: %s", unavailable)
 
@@ -291,7 +278,6 @@ def create_app(test_config=None):
             prompts.qa_system(record, context),
             question,
             model=data.get("model"),
-            token=_user_token(),
         )
         return jsonify({"response": answer, "model_used": model_used})
 
@@ -308,8 +294,7 @@ def create_app(test_config=None):
             prompts.REFINE_QUESTION_SYSTEM,
             prompts.refine_question_user(query, answers),
             model=data.get("model"),
-            token=_user_token(),
-            max_tokens=300,
+            max_tokens=800,
         )
         question = llm.clean_question(text)
         if not question:
@@ -332,8 +317,7 @@ def create_app(test_config=None):
                     prompts.REFINE_KEYWORDS_SYSTEM,
                     prompts.refine_keywords_user(query, answers),
                     model=data.get("model"),
-                    token=_user_token(),
-                    max_tokens=300,
+                    max_tokens=800,
                 )
                 keywords = llm.clean_keywords(text)
             except llm.LLMUnavailable as unavailable:

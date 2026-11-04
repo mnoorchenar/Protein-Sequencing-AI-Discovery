@@ -43,7 +43,7 @@ def llm_answer(monkeypatch):
             calls.append({"system": system, "user": user, **kwargs})
             if isinstance(answer, Exception):
                 raise answer
-            return answer, config.DEFAULT_MODEL
+            return answer, "test-model"
 
         monkeypatch.setattr(llm, "complete", fake_complete)
         return calls
@@ -58,7 +58,7 @@ def post(client, path, **body):
 class TestPages:
     def test_index_lists_only_catalogue_models(self, client):
         html = client.get("/").get_data(as_text=True)
-        for model in config.MODELS:
+        for model in config.catalog():
             assert model["id"] in html
 
     def test_health(self, client):
@@ -160,18 +160,11 @@ class TestAnalyze:
         monkeypatch.setattr(uniprot, "search", boom)
         assert post(client, "/api/analyze", prompt="rare condition xyz").status_code == 502
 
-    def test_bad_user_token_is_reported(self, client, llm_answer):
-        llm_answer(llm.LLMAuthError("Hugging Face rejected the token you provided."))
-        response = client.post(
-            "/api/analyze", json={"prompt": "alzheimer"}, headers={"X-HF-Token": "bad"}
-        )
-        assert response.status_code == 401
-        assert "token" in response.json["error"]
-
-    def test_token_header_reaches_the_llm_layer(self, client, llm_answer, uniprot_data):
-        calls = llm_answer()
-        client.post("/api/analyze", json={"prompt": "cancer"}, headers={"X-HF-Token": "abc"})
-        assert calls[0]["token"] == "abc"
+    def test_missing_ai_key_still_returns_results(self, client, llm_answer, uniprot_data):
+        llm_answer(llm.LLMAuthError("AI is not configured"))
+        response = post(client, "/api/analyze", prompt="alzheimer")
+        assert response.status_code == 200
+        assert response.json["source"] == "curated"
 
     @pytest.mark.parametrize("body", [{}, {"prompt": ""}, {"prompt": "   "}, {"prompt": 5}])
     def test_rejects_missing_prompt(self, client, body):

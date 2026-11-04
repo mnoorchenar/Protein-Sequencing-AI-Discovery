@@ -1,46 +1,52 @@
 from types import SimpleNamespace
 
 import pytest
+import requests
 
 from services import config, llm
 
-
-def chat_response(content):
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
-
-
-class HttpError(Exception):
-    def __init__(self, status):
-        super().__init__(f"HTTP {status}")
-        self.response = SimpleNamespace(status_code=status)
+GROQ_MODELS = [model["id"] for model in config.PROVIDERS[0]["models"]]
+HF_MODELS = [model["id"] for model in config.PROVIDERS[1]["models"]]
 
 
-class FakeClient:
-    """Plays back one scripted outcome per model that is tried."""
+def reply(content):
+    return SimpleNamespace(
+        status_code=200,
+        text="",
+        json=lambda: {"choices": [{"message": {"content": content}}]},
+    )
 
-    outcomes = []
-    calls = []
-    tokens = []
 
-    def __init__(self, token=None, timeout=None):
-        FakeClient.tokens.append(token)
+def failure(status, text=""):
+    return SimpleNamespace(status_code=status, text=text, json=lambda: {})
 
-    def chat_completion(self, messages, model, max_tokens, temperature):
-        FakeClient.calls.append(model)
-        outcome = FakeClient.outcomes.pop(0)
+
+class FakeSession:
+    """Plays back one scripted outcome per request, and records the requests."""
+
+    def __init__(self):
+        self.outcomes = []
+        self.calls = []
+
+    def post(self, url, headers, json, timeout):
+        self.calls.append({"url": url, "headers": headers, "json": json, "timeout": timeout})
+        outcome = self.outcomes.pop(0)
         if isinstance(outcome, Exception):
             raise outcome
-        return chat_response(outcome)
+        return outcome
+
+    @property
+    def models(self):
+        return [call["json"]["model"] for call in self.calls]
 
 
 @pytest.fixture
-def fake_client(monkeypatch):
-    FakeClient.outcomes = []
-    FakeClient.calls = []
-    FakeClient.tokens = []
-    monkeypatch.setattr(llm, "InferenceClient", FakeClient)
-    monkeypatch.setenv("HF_TOKEN", "server-token")
-    return FakeClient
+def fake_session(monkeypatch):
+    fake = FakeSession()
+    monkeypatch.setattr(llm, "session", fake)
+    monkeypatch.setenv("GROQ_API_KEY", "groq-key")
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    return fake
 
 
 class TestParseTargets:
@@ -102,66 +108,130 @@ class TestCleaners:
         assert llm.clean_question('"Which subtype?"\nMore text') == "Which subtype?"
 
 
+class TestStripThinking:
+    def test_removes_reasoning(self):
+        assert llm._strip_thinking("<think>hmm\nmore</think>\nAnswer") == "Answer"
+
+    def test_removes_unfinished_reasoning(self):
+        assert llm._strip_thinking("<think>cut off by the token limit") == ""
+
+    def test_leaves_normal_text(self):
+        assert llm._strip_thinking("Plain answer") == "Plain answer"
+
+
+class TestProviders:
+    def test_groq_is_preferred(self, monkeypatch):
+        monkeypatch.setenv("GROQ_API_KEY", "a")
+        monkeypatch.setenv("HF_TOKEN", "b")
+        assert config.active_provider()["name"] == "Groq"
+
+    def test_hugging_face_is_used_without_groq(self, monkeypatch):
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+        monkeypatch.setenv("HF_TOKEN", "b")
+        assert config.active_provider()["name"] == "Hugging Face"
+        assert config.model_ids() == HF_MODELS
+
+    def test_no_keys(self, monkeypatch):
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+        monkeypatch.delenv("HF_TOKEN", raising=False)
+        assert config.active_provider() is None
+        assert config.model_ids() == GROQ_MODELS
+
+    def test_blank_key_counts_as_missing(self, monkeypatch):
+        monkeypatch.setenv("GROQ_API_KEY", "  ")
+        monkeypatch.delenv("HF_TOKEN", raising=False)
+        assert config.active_provider() is None
+
+
 class TestComplete:
-    def test_returns_first_success(self, fake_client):
-        fake_client.outcomes = ["  answer  "]
-        assert llm.complete("sys", "user") == ("answer", config.DEFAULT_MODEL)
+    def test_sends_an_openai_compatible_request(self, fake_session):
+        fake_session.outcomes = [reply("  answer  ")]
+        assert llm.complete("sys", "user") == ("answer", GROQ_MODELS[0])
+        call = fake_session.calls[0]
+        assert call["url"] == "https://api.groq.com/openai/v1/chat/completions"
+        assert call["headers"]["Authorization"] == "Bearer groq-key"
+        assert call["json"]["messages"] == [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user"},
+        ]
+        assert call["timeout"] == config.LLM_TIMEOUT_SECONDS
 
-    def test_requested_model_goes_first(self, fake_client):
-        fake_client.outcomes = ["answer"]
-        chosen = config.MODEL_IDS[2]
-        _, used = llm.complete("sys", "user", model=chosen)
-        assert used == chosen
+    def test_uses_hugging_face_when_it_is_the_only_key(self, fake_session, monkeypatch):
+        monkeypatch.delenv("GROQ_API_KEY")
+        monkeypatch.setenv("HF_TOKEN", "hf-key")
+        fake_session.outcomes = [reply("answer")]
+        assert llm.complete("sys", "user") == ("answer", HF_MODELS[0])
+        assert fake_session.calls[0]["url"].startswith("https://router.huggingface.co/")
+        assert fake_session.calls[0]["headers"]["Authorization"] == "Bearer hf-key"
 
-    def test_unknown_model_uses_default(self, fake_client):
-        fake_client.outcomes = ["answer"]
+    def test_requested_model_goes_first(self, fake_session):
+        fake_session.outcomes = [reply("answer")]
+        _, used = llm.complete("sys", "user", model=GROQ_MODELS[2])
+        assert used == GROQ_MODELS[2]
+
+    def test_unknown_model_uses_default(self, fake_session):
+        fake_session.outcomes = [reply("answer")]
         _, used = llm.complete("sys", "user", model="attacker/expensive-model")
-        assert used == config.DEFAULT_MODEL
+        assert used == GROQ_MODELS[0]
 
-    def test_falls_back_on_error_and_empty_content(self, fake_client):
-        fake_client.outcomes = [HttpError(503), None, "answer"]
+    def test_falls_back_on_errors_and_empty_content(self, fake_session):
+        fake_session.outcomes = [failure(429), reply(None), reply("answer")]
         _, used = llm.complete("sys", "user")
-        assert used == config.MODEL_IDS[2]
+        assert used == GROQ_MODELS[2]
 
-    def test_attempts_are_capped(self, fake_client):
-        fake_client.outcomes = [HttpError(503)] * 10
+    def test_falls_back_on_network_errors(self, fake_session):
+        fake_session.outcomes = [requests.Timeout("slow"), reply("answer")]
+        _, used = llm.complete("sys", "user")
+        assert used == GROQ_MODELS[1]
+
+    def test_falls_back_on_malformed_responses(self, fake_session):
+        bad = SimpleNamespace(status_code=200, text="", json=lambda: {"choices": []})
+        fake_session.outcomes = [bad, reply("answer")]
+        _, used = llm.complete("sys", "user")
+        assert used == GROQ_MODELS[1]
+
+    def test_reasoning_only_answer_counts_as_empty(self, fake_session):
+        fake_session.outcomes = [reply("<think>never finished"), reply("answer")]
+        _, used = llm.complete("sys", "user")
+        assert used == GROQ_MODELS[1]
+
+    def test_attempts_are_capped(self, fake_session):
+        fake_session.outcomes = [failure(503)] * 10
         with pytest.raises(llm.LLMUnavailable):
             llm.complete("sys", "user")
-        assert len(fake_client.calls) == config.LLM_MAX_ATTEMPTS
+        assert len(fake_session.calls) == config.LLM_MAX_ATTEMPTS
 
-    def test_bad_server_token_stops_immediately(self, fake_client):
-        fake_client.outcomes = [HttpError(401), "never reached"]
-        with pytest.raises(llm.LLMAuthError):
+    def test_rejected_key_stops_immediately(self, fake_session):
+        fake_session.outcomes = [failure(401), reply("never reached")]
+        with pytest.raises(llm.LLMAuthError, match="rejected"):
             llm.complete("sys", "user")
-        assert len(fake_client.calls) == 1
+        assert len(fake_session.calls) == 1
 
-    def test_server_403_tries_next_model(self, fake_client):
-        # One gated model shouldn't stop the fallback chain.
-        fake_client.outcomes = [HttpError(403), "answer"]
+    def test_generic_403_tries_next_model(self, fake_session):
+        fake_session.outcomes = [failure(403, "This model is gated"), reply("answer")]
         _, used = llm.complete("sys", "user")
-        assert used == config.MODEL_IDS[1]
+        assert used == GROQ_MODELS[1]
 
-    def test_token_without_inference_permission_stops_immediately(self, fake_client):
-        error = HttpError(403)
-        error.args = ("403 Forbidden: does not have sufficient permissions to call Inference Providers",)
-        fake_client.outcomes = [error, "never reached"]
-        with pytest.raises(llm.LLMAuthError, match="Inference Providers"):
+    def test_missing_permission_stops_immediately(self, fake_session):
+        fake_session.outcomes = [failure(403, "does not have sufficient permissions"), reply("x")]
+        with pytest.raises(llm.LLMAuthError, match="permission"):
             llm.complete("sys", "user")
-        assert len(fake_client.calls) == 1
+        assert len(fake_session.calls) == 1
 
-    def test_exhausted_credits_stop_immediately_with_a_clear_message(self, fake_client):
-        fake_client.outcomes = [HttpError(402), "never reached"]
-        with pytest.raises(llm.LLMUnavailable, match="no inference credits"):
+    def test_exhausted_credits_stop_immediately_with_a_clear_message(self, fake_session):
+        fake_session.outcomes = [failure(402), reply("never reached")]
+        with pytest.raises(llm.LLMUnavailable, match="no credits"):
             llm.complete("sys", "user")
-        assert len(fake_client.calls) == 1
+        assert len(fake_session.calls) == 1
 
-    def test_user_token_takes_priority(self, fake_client):
-        fake_client.outcomes = ["answer"]
-        llm.complete("sys", "user", token="user-token")
-        assert fake_client.tokens == ["user-token"]
-
-    def test_no_token_raises_without_calling(self, fake_client, monkeypatch):
-        monkeypatch.delenv("HF_TOKEN")
-        with pytest.raises(llm.LLMAuthError):
+    def test_no_key_raises_without_calling(self, fake_session, monkeypatch):
+        monkeypatch.delenv("GROQ_API_KEY")
+        with pytest.raises(llm.LLMAuthError, match="not configured"):
             llm.complete("sys", "user")
-        assert fake_client.calls == []
+        assert fake_session.calls == []
+
+    def test_key_is_never_logged(self, fake_session, caplog):
+        fake_session.outcomes = [failure(500, "server error")] * 3
+        with pytest.raises(llm.LLMUnavailable):
+            llm.complete("sys", "user")
+        assert "groq-key" not in caplog.text

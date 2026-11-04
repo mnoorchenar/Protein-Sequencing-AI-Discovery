@@ -54,12 +54,13 @@ flowchart TD
 | Never show a placeholder structure | A made-up model could be mistaken for real data, so the app says when no structure exists. |
 | Keep prompts on the server, with a model allowlist | The API can't be used as a free general-purpose LLM proxy, and each model has a live provider. |
 | Render all external text with `textContent` | LLM output is untrusted, so it can't inject markup. A strict Content Security Policy adds a second layer, and a test blocks HTML-injection APIs. |
+| Use one client for any OpenAI-compatible provider | The AI runs on free tiers, so changing provider is a configuration change rather than a rewrite. |
 | Get AlphaFold file URLs from its API | File URLs change with each model version, so hardcoding them breaks without warning. |
 | Validate accessions and strip query syntax | User input can't alter upstream URLs or escape the human-only search filter. |
 
 ## Getting started
 
-Requires Python 3.11+. Create a [Hugging Face token](https://huggingface.co/settings/tokens) with the **Make calls to Inference Providers** permission. Without one, the app still works, but only the curated and UniProt search paths are available.
+Requires Python 3.11+. The AI features need a free API key, and [Groq](https://console.groq.com/keys) is recommended. Without a key, the app still works, but only the curated and UniProt search paths are available.
 
 ```bash
 git clone https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery.git
@@ -69,7 +70,7 @@ python -m venv venv
 source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-export HF_TOKEN=your_token  # Windows PowerShell: $env:HF_TOKEN="your_token"
+export GROQ_API_KEY=your_key  # Windows PowerShell: $env:GROQ_API_KEY="your_key"
 python app.py
 ```
 
@@ -79,14 +80,15 @@ Then open http://localhost:7860.
 
 ```bash
 docker build -t protein-target-explorer .
-docker run -p 7860:7860 -e HF_TOKEN=your_token protein-target-explorer
+docker run -p 7860:7860 -e GROQ_API_KEY=your_key protein-target-explorer
 ```
 
 ### Configuration
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `HF_TOKEN` | none | Hugging Face token for the AI features |
+| `GROQ_API_KEY` | none | Free Groq key for the AI features |
+| `HF_TOKEN` | none | Hugging Face token, used only if `GROQ_API_KEY` isn't set. It needs the **Make calls to Inference Providers** permission. |
 | `PORT` | `7860` | Port to listen on |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
 | `LLM_RATE_LIMIT_PER_MINUTE` | `20` | Per-client limit on AI requests, per worker process. `0` turns it off. |
@@ -94,7 +96,7 @@ docker run -p 7860:7860 -e HF_TOKEN=your_token protein-target-explorer
 
 ## API
 
-All `POST` endpoints take and return JSON. To use your own Hugging Face token for AI requests, send it in the `X-HF-Token` header.
+All `POST` endpoints take and return JSON.
 
 | Endpoint | Body | Returns |
 |---|---|---|
@@ -122,8 +124,8 @@ The network tests also check every curated entry against live UniProt data, whic
 ```
 app.py                  Flask app and API routes
 services/
-  config.py             Model catalog and settings
-  llm.py                Model fallback and output parsing
+  config.py             AI providers, models and settings
+  llm.py                Provider client, model fallback and output parsing
   prompts.py            All LLM prompts
   uniprot.py            UniProt client and target verification
   structure.py          AlphaFold and RCSB structure retrieval
@@ -140,6 +142,7 @@ tests/                  Test suite
 - **It doesn't rank targets.** There's no scoring from genetic evidence or tractability, which a platform such as Open Targets could provide.
 - **The curated database is small.** It covers 20 disease terms, and its drug notes need occasional review as approvals change.
 - **Keyword search is literal.** UniProt matches can be only loosely related to a multi-word query.
+- **The AI runs on a free tier.** Provider limits can pause AI results during heavy use, and search then falls back to curated data and UniProt.
 - **Rate limits and caches are per process.** That suits a single container, but a larger deployment would need shared storage such as Redis.
 
 ## Disclaimer

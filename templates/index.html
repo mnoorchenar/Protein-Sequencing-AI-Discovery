@@ -49,18 +49,15 @@
                 <textarea id="chat-input" rows="2" maxlength="500" placeholder="For example: proteins involved in Parkinson's disease"></textarea>
                 <button id="send-btn" class="btn btn-primary" type="submit">Find targets</button>
                 <details class="settings">
-                    <summary>AI settings</summary>
+                    <summary>AI model</summary>
                     <div class="settings-body">
-                        <label for="model-select">Model</label>
+                        <label class="visually-hidden" for="model-select">Model</label>
                         <select id="model-select">
                             {% for model in models %}
-                            <option value="{{ model.id }}" data-note="{{ model.note }}" {% if model.id == default_model %}selected{% endif %}>{{ model.label }}</option>
+                            <option value="{{ model.id }}" data-note="{{ model.note }}">{{ model.label }}</option>
                             {% endfor %}
                         </select>
                         <p class="hint" id="model-info"></p>
-                        <label for="hf-token-input">Your Hugging Face token (optional)</label>
-                        <input type="password" id="hf-token-input" placeholder="hf_..." autocomplete="off" spellcheck="false">
-                        <p class="hint">Used for your requests only, and never stored. Leave it empty to use the demo's token.</p>
                     </div>
                 </details>
             </form>

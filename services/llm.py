@@ -1,15 +1,17 @@
-"""Hugging Face chat completion with model fallback, and parsing of LLM output."""
+"""OpenAI-compatible chat completion with model fallback, and parsing of LLM output."""
 
 import json
 import logging
 import re
 
-from huggingface_hub import InferenceClient
+import requests
 
 from . import config
 from .uniprot import is_valid_accession
 
 logger = logging.getLogger(__name__)
+
+session = requests.Session()
 
 
 class LLMUnavailable(Exception):
@@ -17,31 +19,52 @@ class LLMUnavailable(Exception):
 
 
 class LLMAuthError(LLMUnavailable):
-    """The Hugging Face token is missing, invalid or lacks permission."""
+    """The API key is missing, invalid or lacks permission."""
 
 
 def resolve_model(requested):
-    """Only allow catalogue models, so the endpoint can't be used to run arbitrary ones."""
-    return requested if requested in config.MODEL_IDS else config.DEFAULT_MODEL
+    """Only allow catalog models, so the endpoint can't be used to run arbitrary ones."""
+    ids = config.model_ids()
+    return requested if requested in ids else ids[0]
 
 
 def _attempt_order(model):
     first = resolve_model(model)
-    others = [m for m in config.MODEL_IDS if m != first]
+    others = [m for m in config.model_ids() if m != first]
     return [first, *others][: config.LLM_MAX_ATTEMPTS]
 
 
-def _status_code(error):
-    return getattr(getattr(error, "response", None), "status_code", None)
+def _strip_thinking(text):
+    """Some models put their reasoning in the answer, inside <think> tags."""
+    return re.sub(r"<think>.*?(?:</think>|\Z)", "", text, flags=re.DOTALL).strip()
 
 
-def complete(system, user, *, model=None, token=None, max_tokens=900, temperature=0.3):
-    """Return (text, model_used), trying fallback models when one fails."""
-    effective_token = token or config.hf_token()
-    if not effective_token:
-        raise LLMAuthError("AI is not configured: no Hugging Face token is available.")
+def _raise_for_account_problem(response, provider):
+    """Stop on errors that apply to the whole account, because other models would fail too."""
+    status = response.status_code
+    name = provider["name"]
+    if status == 401:
+        logger.error("%s rejected %s.", name, provider["key_env"])
+        raise LLMAuthError(f"AI is unavailable: {name} rejected the server's API key.")
+    if status == 402:
+        logger.error("%s returned 402: the account's credits have run out.", name)
+        raise LLMUnavailable(f"AI is unavailable: this demo's {name} account has no credits left.")
+    if status == 403 and "sufficient permissions" in response.text:
+        logger.error("%s lacks the permission to call inference.", provider["key_env"])
+        raise LLMAuthError(f"AI is unavailable: the server's {name} key lacks permission.")
 
-    client = InferenceClient(token=effective_token, timeout=config.LLM_TIMEOUT_SECONDS)
+
+def complete(system, user, *, model=None, max_tokens=1500, temperature=0.3):
+    """Return (text, model_used), trying fallback models when one fails.
+
+    max_tokens has to leave room for reasoning models, whose reasoning counts against it.
+    """
+    provider = config.active_provider()
+    if not provider:
+        raise LLMAuthError("AI is not configured: no API key is available.")
+
+    url = f"{provider['base_url']}/chat/completions"
+    headers = {"Authorization": f"Bearer {config.api_key(provider)}"}
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
@@ -49,48 +72,40 @@ def complete(system, user, *, model=None, token=None, max_tokens=900, temperatur
 
     for candidate in _attempt_order(model):
         try:
-            response = client.chat_completion(
-                messages=messages,
-                model=candidate,
-                max_tokens=max_tokens,
-                temperature=temperature,
+            response = session.post(
+                url,
+                headers=headers,
+                json={
+                    "model": candidate,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+                timeout=config.LLM_TIMEOUT_SECONDS,
             )
-        except Exception as error:  # Provider errors have no shared base class.
-            status = _status_code(error)
-            if status in (401, 403) and token:
-                raise LLMAuthError(
-                    "Hugging Face rejected the token you provided."
-                ) from error
-            if status == 401:
-                raise LLMAuthError(
-                    "Hugging Face rejected the server's token."
-                ) from error
-            # A token without this permission fails the same way for every model.
-            if status == 403 and "sufficient permissions" in str(error):
-                logger.error(
-                    "HF_TOKEN lacks the 'Make calls to Inference Providers' permission."
-                )
-                raise LLMAuthError(
-                    "AI is unavailable: the server's Hugging Face token can't call Inference Providers."
-                ) from error
-            # Billing applies to the whole account, so other models would fail too.
-            if status == 402:
-                logger.error("Hugging Face returned 402: the account's inference credits have run out.")
-                owner = "Your" if token else "This demo's"
-                raise LLMUnavailable(
-                    f"{owner} Hugging Face account has no inference credits left."
-                ) from error
+        except requests.RequestException as error:
+            logger.warning("Model %s failed (%s)", candidate, type(error).__name__)
+            continue
+
+        _raise_for_account_problem(response, provider)
+        if response.status_code != 200:
             logger.warning(
-                "Model %s failed (%s, status %s)",
+                "Model %s failed (status %s): %s",
                 candidate,
-                type(error).__name__,
-                status,
+                response.status_code,
+                response.text[:200],
             )
             continue
 
-        text = (response.choices[0].message.content or "").strip()
+        try:
+            content = response.json()["choices"][0]["message"].get("content") or ""
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError):
+            logger.warning("Model %s returned an unexpected response", candidate)
+            continue
+
+        text = _strip_thinking(content)
         if text:
-            logger.info("Answered by %s", candidate)
+            logger.info("Answered by %s on %s", candidate, provider["name"])
             return text, candidate
         logger.warning("Model %s returned empty content", candidate)
 

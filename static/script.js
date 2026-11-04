@@ -79,13 +79,13 @@ function scrollToEnd(node) {
 // API
 
 async function postJSON(url, body) {
-    const headers = { 'Content-Type': 'application/json' };
-    const token = byId('hf-token-input').value.trim();
-    if (token) headers['X-HF-Token'] = token;
-
     let response;
     try {
-        response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
     } catch (error) {
         throw new Error('Could not reach the server. Check your connection and try again.');
     }
