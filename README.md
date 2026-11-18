@@ -25,7 +25,7 @@ license: mit
 [![CI](https://img.shields.io/github/actions/workflow/status/mnoorchenar/Protein-Sequencing-AI-Discovery/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/mnoorchenar/Protein-Sequencing-AI-Discovery/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-<a href="https://www.youtube.com/watch?v=wnB6oKDZVfA" title="Watch the 1-minute video on YouTube"><img src="docs/video-thumbnail.svg" width="480" alt="See it in action: a 1-minute 11-second video of Protein Target Explorer. Click to watch on YouTube."/></a>
+<video src="https://github.com/user-attachments/assets/3b353fcf-d6c8-4652-9350-8ea974d8a357" controls width="100%"></video>
 
 **LLMs often give a convincing answer with the wrong protein ID.**<br>
 This app treats every suggestion as an unverified claim, and shows it only if UniProt confirms what it is.

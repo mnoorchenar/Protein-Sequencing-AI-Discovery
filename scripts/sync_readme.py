@@ -8,6 +8,7 @@ Edit .github/README.md, then run from the repo root:
     python -m scripts.sync_readme
 """
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +30,9 @@ NOTE = "<!-- Generated from .github/README.md by scripts/sync_readme.py. Edit th
 
 def build():
     source = SOURCE.read_text(encoding="utf-8").replace("\r\n", "\n")
+    # GitHub plays a bare video link on its own line; Hugging Face needs a <video> tag.
+    source = re.sub(r"^(https://github\.com/user-attachments/assets/[0-9a-f-]+)$",
+                    r'<video src="\1" controls width="100%"></video>', source, flags=re.M)
     # Paths in .github/README.md are relative to .github/.
     return SETTINGS + NOTE + source.replace("../", "")
 
